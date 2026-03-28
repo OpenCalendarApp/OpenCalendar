@@ -134,6 +134,10 @@ export interface ProjectDetailResponse {
   project: ProjectDetail;
 }
 
+export interface TimeBlocksResponse {
+  time_blocks: TimeBlock[];
+}
+
 export interface PublicProjectInfo {
   id: number;
   name: string;
@@ -156,6 +160,20 @@ export interface PublicProjectResponse {
   available_slots: PublicSlotInfo[];
 }
 
+export interface CurrentBookingSlotInfo {
+  time_block_id: number;
+  start_time: string;
+  end_time: string;
+  engineers: PublicEngineerSummary[];
+}
+
+export interface BookingLookupResponse {
+  project: PublicProjectInfo;
+  booking: Booking;
+  current_slot: CurrentBookingSlotInfo;
+  available_slots: PublicSlotInfo[];
+}
+
 export interface BookingResponse {
   booking: Booking;
   client_calendar: string;
@@ -169,5 +187,11 @@ export interface BookingResponse {
 export interface RescheduleResponse {
   booking: Booking;
   client_calendar: string;
+  reschedule_url: string;
+  message: string;
+}
+
+export interface CancelBookingResponse {
+  booking: Booking;
   message: string;
 }

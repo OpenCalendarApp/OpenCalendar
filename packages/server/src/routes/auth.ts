@@ -1,31 +1,39 @@
-import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
-import { loginSchema, registerSchema, type User } from '@session-scheduler/shared';
+import {
+  loginSchema,
+  registerSchema,
+  type AuthResponse,
+  type EngineersResponse,
+  type LoginRequest,
+  type MeResponse,
+  type RegisterRequest,
+  type User,
+  type UserRecord
+} from '@session-scheduler/shared';
 
-import { authMiddleware, signToken } from '../middleware/auth.js';
+import { authMiddleware, requireRole, signToken } from '../middleware/auth.js';
 import { pool } from '../db/pool.js';
+import { hashUserPassword, verifyPassword } from '../utils/auth.js';
 
 const router = Router();
 
-type UserRow = User & { password_hash: string };
-
 router.post('/register', async (req, res) => {
-  const parse = registerSchema.safeParse(req.body);
+  const parse = registerSchema.safeParse(req.body satisfies RegisterRequest);
   if (!parse.success) {
     res.status(400).json({ error: 'Validation failed', details: parse.error.flatten() });
     return;
   }
 
   const { email, password, first_name, last_name, phone, role } = parse.data;
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await hashUserPassword(password);
 
   try {
-    const result = await pool.query<UserRow>(
+    const result = await pool.query<UserRecord>(
       `
       INSERT INTO users (email, first_name, last_name, phone, role, password_hash)
       VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, email, first_name, last_name, phone, role, created_at, password_hash
+      RETURNING id, email, first_name, last_name, phone, role, created_at, updated_at, password_hash
       `,
       [email.toLowerCase(), first_name, last_name, phone ?? null, role, passwordHash]
     );
@@ -37,7 +45,8 @@ router.post('/register', async (req, res) => {
     }
 
     const token = signToken({ userId: user.id, email: user.email, role: user.role });
-    res.status(201).json({ token, user: omitPasswordHash(user) });
+    const response: AuthResponse = { token, user: omitPasswordHash(user) };
+    res.status(201).json(response);
   } catch (error: unknown) {
     if (isUniqueViolation(error)) {
       res.status(409).json({ error: 'Email already exists' });
@@ -49,7 +58,7 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-  const parse = loginSchema.safeParse(req.body);
+  const parse = loginSchema.safeParse(req.body satisfies LoginRequest);
   if (!parse.success) {
     res.status(400).json({ error: 'Validation failed', details: parse.error.flatten() });
     return;
@@ -57,9 +66,9 @@ router.post('/login', async (req, res) => {
 
   const { email, password } = parse.data;
 
-  const result = await pool.query<UserRow>(
+  const result = await pool.query<UserRecord>(
     `
-    SELECT id, email, first_name, last_name, phone, role, created_at, password_hash
+    SELECT id, email, first_name, last_name, phone, role, created_at, updated_at, password_hash
     FROM users
     WHERE email = $1
     `,
@@ -72,24 +81,30 @@ router.post('/login', async (req, res) => {
     return;
   }
 
-  const passwordMatches = await bcrypt.compare(password, user.password_hash);
+  const passwordMatches = await verifyPassword(password, user.password_hash);
   if (!passwordMatches) {
     res.status(401).json({ error: 'Invalid credentials' });
     return;
   }
 
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
-  res.json({ token, user: omitPasswordHash(user) });
+  const response: AuthResponse = { token, user: omitPasswordHash(user) };
+  res.json(response);
 });
 
 router.get('/me', authMiddleware, async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
   const result = await pool.query<User>(
     `
     SELECT id, email, first_name, last_name, phone, role, created_at
     FROM users
     WHERE id = $1
     `,
-    [req.user?.userId]
+    [req.user.userId]
   );
 
   const user = result.rows[0];
@@ -98,10 +113,11 @@ router.get('/me', authMiddleware, async (req, res) => {
     return;
   }
 
-  res.json({ user });
+  const response: MeResponse = { user };
+  res.json(response);
 });
 
-router.get('/engineers', authMiddleware, async (_req, res) => {
+router.get('/engineers', authMiddleware, requireRole(['pm']), async (_req, res) => {
   const result = await pool.query<User>(
     `
     SELECT id, email, first_name, last_name, phone, role, created_at
@@ -111,10 +127,11 @@ router.get('/engineers', authMiddleware, async (_req, res) => {
     `
   );
 
-  res.json({ engineers: result.rows });
+  const response: EngineersResponse = { engineers: result.rows };
+  res.json(response);
 });
 
-function omitPasswordHash(user: UserRow): User {
+function omitPasswordHash(user: UserRecord): User {
   return {
     id: user.id,
     email: user.email,

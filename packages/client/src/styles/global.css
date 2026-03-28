@@ -11,6 +11,8 @@
 body {
   margin: 0;
   min-height: 100vh;
+  color: inherit;
+  background: inherit;
 }
 
 a {
@@ -38,6 +40,12 @@ a {
   gap: 0.75rem;
 }
 
+.user-badge {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #c8ddff;
+}
+
 .sidebar button {
   margin-top: auto;
 }
@@ -46,12 +54,29 @@ a {
   padding: 1.5rem;
 }
 
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.header-button {
+  width: auto;
+}
+
 .project-grid {
   list-style: none;
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
+}
+
+.inline-link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .project-grid li,
@@ -73,12 +98,18 @@ label {
 }
 
 input,
+select,
+textarea,
 button {
   width: 100%;
   border: 1px solid #b4bfd0;
   border-radius: 10px;
   padding: 0.65rem 0.75rem;
   font: inherit;
+}
+
+textarea {
+  resize: vertical;
 }
 
 button {
@@ -88,6 +119,138 @@ button {
   border: none;
 }
 
+.button-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.secondary-button {
+  background: #5b6c82;
+}
+
+.danger-button {
+  background: #9a2323;
+}
+
+.small-button {
+  width: auto;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 17, 28, 0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #ccd5e2;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.project-detail {
+  display: grid;
+  gap: 1rem;
+}
+
+.public-booking-page {
+  width: min(900px, calc(100% - 2rem));
+  margin: 2rem auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.detail-card {
+  background: #ffffff;
+  border: 1px solid #d7dde6;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.status-card {
+  margin-bottom: 1rem;
+}
+
+.mono-text {
+  font-family: 'Courier New', Courier, monospace;
+  overflow-wrap: anywhere;
+}
+
+.block-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.block-list li {
+  border: 1px solid #d4dce7;
+  border-radius: 12px;
+  padding: 0.8rem;
+}
+
+.slot-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.slot-group h4 {
+  margin: 0 0 0.5rem;
+  color: #284a70;
+}
+
+.selection-grid {
+  border: 1px solid #d7dde6;
+  border-radius: 12px;
+  padding: 0.8rem;
+  margin-bottom: 0.8rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.selection-grid legend {
+  padding: 0 0.4rem;
+  font-weight: 600;
+}
+
+.block-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.block-table th,
+.block-table td {
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #d7dde6;
+  padding: 0.65rem 0.5rem;
+}
+
+.block-table th {
+  font-size: 0.92rem;
+  color: #284a70;
+}
+
 .error {
   color: #af0f0f;
 }
@@ -95,6 +258,51 @@ button {
 .hint {
   color: #4f627a;
   font-size: 0.9rem;
+}
+
+.toast-stack {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: grid;
+  gap: 0.65rem;
+  width: min(360px, calc(100vw - 2rem));
+}
+
+.toast {
+  border-radius: 12px;
+  border: 1px solid #d7dde6;
+  background: #ffffff;
+  color: #1d1d1f;
+  padding: 0.7rem 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 8px 24px rgba(7, 16, 28, 0.14);
+}
+
+.toast-success {
+  border-color: #88c79a;
+  background: #eef9f1;
+}
+
+.toast-error {
+  border-color: #d18c8c;
+  background: #fff2f2;
+}
+
+.toast-info {
+  border-color: #9fb6d6;
+  background: #f1f6ff;
+}
+
+.toast-close {
+  width: auto;
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  background: #5b6c82;
 }
 
 @media (max-width: 768px) {
@@ -108,5 +316,36 @@ button {
 
   .content {
     padding: 1rem;
+  }
+
+  .public-booking-page,
+  .center-card {
+    width: calc(100% - 1rem);
+    margin: 1rem auto;
+  }
+
+  .header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .button-row {
+    grid-template-columns: 1fr;
+  }
+
+  .block-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .checkbox-label {
+    align-items: flex-start;
+  }
+
+  .toast-stack {
+    left: 0.5rem;
+    right: 0.5rem;
+    top: 0.5rem;
+    width: auto;
   }
 }

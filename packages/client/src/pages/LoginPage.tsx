@@ -1,16 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { apiFetch } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.js';
-
-interface LoginResponse {
-  token: string;
-}
+import { useToast } from '../context/ToastContext.js';
 
 export function LoginPage(): JSX.Element {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { showToast } = useToast();
   const [email, setEmail] = useState('pm@example.com');
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState<string | null>(null);
@@ -22,14 +19,13 @@ export function LoginPage(): JSX.Element {
     setError(null);
 
     try {
-      const response = await apiFetch<LoginResponse>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password })
-      });
-      login(response.token);
+      await login({ email, password });
+      showToast('Signed in successfully.', 'success');
       navigate('/dashboard');
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Login failed');
+      const message = submitError instanceof Error ? submitError.message : 'Login failed';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setPending(false);
     }

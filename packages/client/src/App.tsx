@@ -9,7 +9,15 @@ import { PublicBookingPage } from './pages/PublicBookingPage.js';
 import { ReschedulePage } from './pages/ReschedulePage.js';
 
 export function App(): JSX.Element {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isBootstrapping } = useAuth();
+
+  if (isBootstrapping) {
+    return (
+      <main className="center-card">
+        <h2>Loading session...</h2>
+      </main>
+    );
+  }
 
   return (
     <Routes>

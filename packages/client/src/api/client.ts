@@ -1,24 +1,28 @@
+import { getStoredToken } from '../auth/storage.js';
+
 interface ApiError {
   error: string;
   details?: unknown;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 
-function getAuthToken(): string | null {
-  return localStorage.getItem('session_scheduler_token');
+export function buildApiUrl(path: string): string {
+  return `${API_BASE_URL}${path}`;
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getAuthToken();
+  const token = getStoredToken();
   const headers = new Headers(init?.headers);
 
-  headers.set('Content-Type', 'application/json');
+  if (init?.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...init,
     headers
   });

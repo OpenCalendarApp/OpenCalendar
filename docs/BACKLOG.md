@@ -26,55 +26,55 @@
 ---
 
 # EPIC 3 — Auth & Identity
-- [ ] bcrypt + JWT helpers
-- [ ] Auth middleware + RBAC
-- [ ] Auth endpoints (register, login, me, engineers)
-- [ ] Client auth context
+- [x] bcrypt + JWT helpers
+- [x] Auth middleware + RBAC
+- [x] Auth endpoints (register, login, me, engineers)
+- [x] Client auth context
 
 ---
 
 # EPIC 4 — Project Management
-- [ ] Project CRUD endpoints
-- [ ] Dashboard UI
-- [ ] Create project modal
-- [ ] Project detail page
+- [x] Project CRUD endpoints
+- [x] Dashboard UI
+- [x] Create project modal
+- [x] Project detail page
 
 ---
 
 # EPIC 5 — Time Blocks
-- [ ] Batch create endpoint (transactional)
-- [ ] Engineer assignment
-- [ ] Delete rules (prevent if booked)
-- [ ] UI for block creation + table
+- [x] Batch create endpoint (transactional)
+- [x] Engineer assignment
+- [x] Delete rules (prevent if booked)
+- [x] UI for block creation + table
 
 ---
 
 # EPIC 6 — Public Booking
-- [ ] Public project endpoint (available slots)
-- [ ] Booking transaction (SELECT FOR UPDATE)
-- [ ] Public booking UI (password → slots → form → confirm)
+- [x] Public project endpoint (available slots)
+- [x] Booking transaction (SELECT FOR UPDATE)
+- [x] Public booking UI (password → slots → form → confirm)
 
 ---
 
 # EPIC 7 — Reschedule & Cancel
-- [ ] Booking lookup endpoint
-- [ ] Reschedule transaction (atomic)
-- [ ] Cancel endpoint
-- [ ] Reschedule UI
+- [x] Booking lookup endpoint
+- [x] Reschedule transaction (atomic)
+- [x] Cancel endpoint
+- [x] Reschedule UI
 
 ---
 
 # EPIC 8 — Calendar (.ics)
-- [ ] ICS generator (RFC 5545)
-- [ ] Calendar download endpoint
-- [ ] Download UI
+- [x] ICS generator (RFC 5545)
+- [x] Calendar download endpoint
+- [x] Download UI
 
 ---
 
 # EPIC 9 — UX Polish
-- [ ] Loading + error states
-- [ ] Mobile responsiveness
-- [ ] Toasts + confirmations
+- [x] Loading + error states
+- [x] Mobile responsiveness
+- [x] Toasts + confirmations
 
 ---
 
