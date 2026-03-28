@@ -956,6 +956,7 @@ These are out of scope for v1 but should be considered for subsequent iterations
 | Data retention + privacy controls | Medium | Define retention windows, archival strategy, and PII deletion/export workflows for compliance requests. |
 | Capacity planning + load testing | Medium | Document expected peak booking traffic, validate indexing strategy, and run periodic contention/load tests. |
 | Multi-tenant isolation | Medium | If multiple unrelated teams share one instance, enforce tenant scoping on all queries and evaluate PostgreSQL RLS. |
+| Booking email domain validation | Medium | Allow projects to define an approved root domain (for example `client.com`) and reject bookings where `email` is outside that domain. |
 | JWT refresh tokens + revocation | Medium | Add rotating refresh tokens with sliding expiry and server-side revocation/session invalidation support. |
 | Audit log | Low | Track who created/deleted blocks, who booked/cancelled, for compliance. |
 | Waitlist | Low | When a slot is full, allow clients to join a waitlist and auto-notify if a cancellation opens it. |

@@ -81,6 +81,11 @@ npm run docker:down
 - `npm run db:migrate` apply database schema
 - `npm run db:seed` insert demo seed records
 
+Auto bump rules:
+- `patch`: Client-only changes (`packages/client/**`)
+- `minor`: Server-only changes (`packages/server/**`)
+- `major`: Both Client and Server changed
+
 ## Seed Credentials
 
 - PM: `pm@example.com` / `password123`

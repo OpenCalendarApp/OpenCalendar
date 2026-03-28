@@ -101,6 +101,7 @@
 - [ ] Google Calendar integration (OAuth2)
 - [ ] Recurring time blocks
 - [ ] Timezone selection UI
+- [ ] Booking email domain validation (project-level root domain allowlist)
 - [ ] Idempotency keys for booking
 - [ ] API versioning (/api/v1)
 - [ ] Data retention + deletion policies
