@@ -1,0 +1,34 @@
+{
+  "name": "session-scheduler",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build -w @session-scheduler/shared && concurrently -n shared,server,client -c blue,green,magenta \"npm run dev -w @session-scheduler/shared\" \"npm run dev -w @session-scheduler/server\" \"npm run dev -w @session-scheduler/client\"",
+    "dev:setup": "npm run docker:up && npm run db:migrate && npm run db:seed",
+    "build": "npm run build --workspaces --if-present",
+    "bump": "node scripts/bump-version.mjs",
+    "bump:patch": "npm run bump -- --force patch",
+    "bump:minor": "npm run bump -- --force minor",
+    "bump:major": "npm run bump -- --force major",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write .",
+    "db:migrate": "npm run db:migrate -w @session-scheduler/server",
+    "db:seed": "npm run db:seed -w @session-scheduler/server",
+    "docker:up": "docker compose up postgres -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "@types/node": "^22.13.17",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.23.0",
+    "eslint-config-prettier": "^10.1.1",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.28.0"
+  }
+}

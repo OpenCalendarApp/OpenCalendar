@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["vite/client", "react", "react-dom"]
+  },
+  "include": ["src"],
+  "references": [{ "path": "../shared" }]
+}

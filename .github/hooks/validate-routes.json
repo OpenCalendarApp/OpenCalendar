@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "node .github/scripts/validate-route.js",
+        "timeout": 10
+      }
+    ]
+  }
+}
+
