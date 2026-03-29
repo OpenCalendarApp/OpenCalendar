@@ -13,12 +13,13 @@ import {
 } from '@session-scheduler/shared';
 
 import { authMiddleware, requireRole, signToken } from '../middleware/auth.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import { pool } from '../db/pool.js';
 import { hashUserPassword, verifyPassword } from '../utils/auth.js';
 
 const router = Router();
 
-router.post('/register', async (req, res) => {
+router.post('/register', asyncHandler(async (req, res) => {
   const parse = registerSchema.safeParse(req.body satisfies RegisterRequest);
   if (!parse.success) {
     res.status(400).json({ error: 'Validation failed', details: parse.error.flatten() });
@@ -53,11 +54,11 @@ router.post('/register', async (req, res) => {
       return;
     }
 
-    res.status(500).json({ error: 'Unable to register user', details: error });
+    res.status(500).json({ error: 'Unable to register user' });
   }
-});
+}));
 
-router.post('/login', async (req, res) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const parse = loginSchema.safeParse(req.body satisfies LoginRequest);
   if (!parse.success) {
     res.status(400).json({ error: 'Validation failed', details: parse.error.flatten() });
@@ -90,9 +91,9 @@ router.post('/login', async (req, res) => {
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
   const response: AuthResponse = { token, user: omitPasswordHash(user) };
   res.json(response);
-});
+}));
 
-router.get('/me', authMiddleware, async (req, res) => {
+router.get('/me', authMiddleware, asyncHandler(async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: 'Missing authenticated user' });
     return;
@@ -115,9 +116,9 @@ router.get('/me', authMiddleware, async (req, res) => {
 
   const response: MeResponse = { user };
   res.json(response);
-});
+}));
 
-router.get('/engineers', authMiddleware, requireRole(['pm']), async (_req, res) => {
+router.get('/engineers', authMiddleware, requireRole(['pm']), asyncHandler(async (_req, res) => {
   const result = await pool.query<User>(
     `
     SELECT id, email, first_name, last_name, phone, role, created_at
@@ -129,7 +130,7 @@ router.get('/engineers', authMiddleware, requireRole(['pm']), async (_req, res) 
 
   const response: EngineersResponse = { engineers: result.rows };
   res.json(response);
-});
+}));
 
 function omitPasswordHash(user: UserRecord): User {
   return {

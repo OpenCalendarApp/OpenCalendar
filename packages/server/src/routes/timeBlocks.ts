@@ -11,6 +11,7 @@ import {
 } from '@session-scheduler/shared';
 
 import { pool } from '../db/pool.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
 
 const router = Router();
@@ -130,7 +131,7 @@ async function assignEngineersToBlock(
   }
 }
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, asyncHandler(async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: 'Missing authenticated user' });
     return;
@@ -188,15 +189,15 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const response: TimeBlocksResponse = { time_blocks: [timeBlock] };
     res.status(201).json(response);
-  } catch (error: unknown) {
+  } catch {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: 'Unable to create time block', details: error });
+    res.status(500).json({ error: 'Unable to create time block' });
   } finally {
     client.release();
   }
-});
+}));
 
-router.post('/batch', authMiddleware, requireRole(['pm']), async (req, res) => {
+router.post('/batch', authMiddleware, requireRole(['pm']), asyncHandler(async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: 'Missing authenticated user' });
     return;
@@ -258,15 +259,15 @@ router.post('/batch', authMiddleware, requireRole(['pm']), async (req, res) => {
 
     const response: TimeBlocksResponse = { time_blocks: createdBlocks };
     res.status(201).json(response);
-  } catch (error: unknown) {
+  } catch {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: 'Unable to create time blocks', details: error });
+    res.status(500).json({ error: 'Unable to create time blocks' });
   } finally {
     client.release();
   }
-});
+}));
 
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, asyncHandler(async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: 'Missing authenticated user' });
     return;
@@ -326,6 +327,6 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   );
 
   res.status(204).send();
-});
+}));
 
 export default router;

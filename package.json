@@ -9,6 +9,7 @@
     "dev": "npm run build -w @session-scheduler/shared && concurrently -n shared,server,client -c blue,green,magenta \"npm run dev -w @session-scheduler/shared\" \"npm run dev -w @session-scheduler/server\" \"npm run dev -w @session-scheduler/client\"",
     "dev:setup": "npm run docker:up && npm run db:migrate && npm run db:seed",
     "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "bump": "node scripts/bump-version.mjs",
     "bump:patch": "npm run bump -- --force patch",
     "bump:minor": "npm run bump -- --force minor",
@@ -18,7 +19,8 @@
     "db:migrate": "npm run db:migrate -w @session-scheduler/server",
     "db:seed": "npm run db:seed -w @session-scheduler/server",
     "docker:up": "docker compose up postgres -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "docker:prod:validate": "docker compose config && docker compose build && docker compose up -d && docker compose ps && docker compose down"
   },
   "devDependencies": {
     "@eslint/js": "^9.23.0",

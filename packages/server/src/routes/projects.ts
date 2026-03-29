@@ -15,6 +15,7 @@ import {
 } from '@session-scheduler/shared';
 
 import { pool } from '../db/pool.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { hashProjectPassword } from '../utils/auth.js';
 
@@ -24,7 +25,7 @@ type ProjectDetailRow = Omit<ProjectDetail, 'time_blocks'>;
 type TimeBlockRow = Omit<TimeBlockWithRelations, 'engineers' | 'bookings'>;
 type EngineerAssignmentRow = EngineerSummary & { time_block_id: number };
 
-router.get('/', authMiddleware, async (_req, res) => {
+router.get('/', authMiddleware, asyncHandler(async (_req, res) => {
   const result = await pool.query<ProjectSummary>(
     `
     SELECT
@@ -51,9 +52,9 @@ router.get('/', authMiddleware, async (_req, res) => {
 
   const response: ProjectsResponse = { projects: result.rows };
   res.json(response);
-});
+}));
 
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id', authMiddleware, asyncHandler(async (req, res) => {
   const paramsParse = numericIdParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid project id', details: paramsParse.error.flatten() });
@@ -184,9 +185,9 @@ router.get('/:id', authMiddleware, async (req, res) => {
   };
 
   res.json({ project });
-});
+}));
 
-router.post('/', authMiddleware, requireRole(['pm']), async (req, res) => {
+router.post('/', authMiddleware, requireRole(['pm']), asyncHandler(async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: 'Missing authenticated user' });
     return;
@@ -235,9 +236,9 @@ router.post('/', authMiddleware, requireRole(['pm']), async (req, res) => {
 
   const response: ProjectResponse = { project };
   res.status(201).json(response);
-});
+}));
 
-router.put('/:id', authMiddleware, requireRole(['pm']), async (req, res) => {
+router.put('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (req, res) => {
   const paramsParse = numericIdParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid project id', details: paramsParse.error.flatten() });
@@ -320,9 +321,9 @@ router.put('/:id', authMiddleware, requireRole(['pm']), async (req, res) => {
 
   const response: ProjectResponse = { project };
   res.json(response);
-});
+}));
 
-router.delete('/:id', authMiddleware, requireRole(['pm']), async (req, res) => {
+router.delete('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (req, res) => {
   const paramsParse = numericIdParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid project id', details: paramsParse.error.flatten() });
@@ -346,6 +347,6 @@ router.delete('/:id', authMiddleware, requireRole(['pm']), async (req, res) => {
   }
 
   res.status(204).send();
-});
+}));
 
 export default router;

@@ -18,6 +18,8 @@ import {
 } from '@session-scheduler/shared';
 
 import { pool } from '../db/pool.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import { publicReadRateLimiter, publicWriteRateLimiter } from '../middleware/rateLimit.js';
 import { verifyPassword } from '../utils/auth.js';
 import { createCalendarEvent } from '../utils/ics.js';
 
@@ -78,7 +80,7 @@ type CalendarBookingRow = Booking & {
   end_time: string;
 };
 
-router.get('/project/:shareToken', async (req, res) => {
+router.get('/project/:shareToken', publicReadRateLimiter, asyncHandler(async (req, res) => {
   const paramsParse = shareTokenParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid share token', details: paramsParse.error.flatten() });
@@ -154,9 +156,9 @@ router.get('/project/:shareToken', async (req, res) => {
   };
 
   res.json(response);
-});
+}));
 
-router.post('/book/:shareToken', async (req, res) => {
+router.post('/book/:shareToken', publicWriteRateLimiter, asyncHandler(async (req, res) => {
   const paramsParse = shareTokenParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid share token', details: paramsParse.error.flatten() });
@@ -327,15 +329,15 @@ router.post('/book/:shareToken', async (req, res) => {
     };
 
     res.status(201).json(response);
-  } catch (error: unknown) {
+  } catch {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: 'Unable to complete booking', details: error });
+    res.status(500).json({ error: 'Unable to complete booking' });
   } finally {
     client.release();
   }
-});
+}));
 
-router.get('/booking/:bookingToken', async (req, res) => {
+router.get('/booking/:bookingToken', publicReadRateLimiter, asyncHandler(async (req, res) => {
   const paramsParse = bookingTokenParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid booking token', details: paramsParse.error.flatten() });
@@ -466,9 +468,9 @@ router.get('/booking/:bookingToken', async (req, res) => {
   };
 
   res.json(response);
-});
+}));
 
-router.post('/reschedule/:bookingToken', async (req, res) => {
+router.post('/reschedule/:bookingToken', publicWriteRateLimiter, asyncHandler(async (req, res) => {
   const paramsParse = bookingTokenParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid booking token', details: paramsParse.error.flatten() });
@@ -639,15 +641,15 @@ router.post('/reschedule/:bookingToken', async (req, res) => {
     };
 
     res.json(response);
-  } catch (error: unknown) {
+  } catch {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: 'Unable to reschedule booking', details: error });
+    res.status(500).json({ error: 'Unable to reschedule booking' });
   } finally {
     client.release();
   }
-});
+}));
 
-router.post('/cancel/:bookingToken', async (req, res) => {
+router.post('/cancel/:bookingToken', publicWriteRateLimiter, asyncHandler(async (req, res) => {
   const paramsParse = bookingTokenParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid booking token', details: paramsParse.error.flatten() });
@@ -705,15 +707,15 @@ router.post('/cancel/:bookingToken', async (req, res) => {
     };
 
     res.json(response);
-  } catch (error: unknown) {
+  } catch {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: 'Unable to cancel booking', details: error });
+    res.status(500).json({ error: 'Unable to cancel booking' });
   } finally {
     client.release();
   }
-});
+}));
 
-router.get('/calendar/:bookingToken', async (req, res) => {
+router.get('/calendar/:bookingToken', publicReadRateLimiter, asyncHandler(async (req, res) => {
   const paramsParse = bookingTokenParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid booking token', details: paramsParse.error.flatten() });
@@ -787,6 +789,6 @@ router.get('/calendar/:bookingToken', async (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="session-${tokenPrefix}.ics"`);
   res.setHeader('Cache-Control', 'no-store');
   res.send(calendarContent);
-});
+}));
 
 export default router;

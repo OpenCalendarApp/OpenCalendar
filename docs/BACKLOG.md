@@ -79,10 +79,10 @@
 ---
 
 # EPIC 10 — Hardening & Production
-- [ ] Rate limiting (public endpoints)
-- [ ] Logging + error handling
-- [ ] Health checks
-- [ ] Tests (auth, booking, concurrency)
+- [x] Rate limiting (public endpoints)
+- [x] Logging + error handling
+- [x] Health checks
+- [x] Tests (auth, booking, concurrency)
 - [ ] Docker production validation
 
 ---

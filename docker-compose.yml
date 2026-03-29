@@ -25,15 +25,25 @@ services:
     container_name: session-scheduler-server
     restart: unless-stopped
     environment:
+      NODE_ENV: production
       DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://ss_admin:change-me@postgres:5432/session_scheduler}
       JWT_SECRET: ${JWT_SECRET:-development-secret}
       PORT: ${PORT:-4000}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      PUBLIC_RATE_LIMIT_WINDOW_MS: ${PUBLIC_RATE_LIMIT_WINDOW_MS:-60000}
+      PUBLIC_READ_RATE_LIMIT_MAX: ${PUBLIC_READ_RATE_LIMIT_MAX:-120}
+      PUBLIC_WRITE_RATE_LIMIT_MAX: ${PUBLIC_WRITE_RATE_LIMIT_MAX:-30}
     ports:
       - "4000:4000"
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health/live').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1));"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   client:
     build:
@@ -44,7 +54,14 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - server
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
 volumes:
   pg_data:
