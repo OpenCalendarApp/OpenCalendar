@@ -18,5 +18,5 @@ void test('rejects booking emails outside allowlisted domain', () => {
   assert.equal(isEmailAllowedForProjectDomain('person@team.client.com', 'client.com'), true);
   assert.equal(isEmailAllowedForProjectDomain('person@other.com', 'client.com'), false);
   assert.equal(isEmailAllowedForProjectDomain('person@other.com', null), true);
+  assert.equal(isEmailAllowedForProjectDomain('person@other.com', 'client.com,other.com'), false);
 });
-

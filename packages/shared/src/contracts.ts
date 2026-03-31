@@ -18,6 +18,7 @@ import type {
   rescheduleBookingSchema,
   shareTokenParamsSchema,
   setupInitializeSchema,
+  updateTimeBlockSchema,
   updateAdminOidcSsoConfigSchema,
   updateUserRoleSchema,
   updateUserStatusSchema,
@@ -38,6 +39,7 @@ export type UpdateProjectRequest = z.infer<typeof updateProjectSchema>;
 export type NumericIdParams = z.infer<typeof numericIdParamsSchema>;
 
 export type CreateTimeBlockRequest = z.infer<typeof createTimeBlockSchema>;
+export type UpdateTimeBlockRequest = z.infer<typeof updateTimeBlockSchema>;
 export type CreateRecurringTimeBlocksRequest = z.infer<typeof createRecurringTimeBlocksSchema>;
 export type BatchTimeBlockItem = z.infer<typeof batchTimeBlockItemSchema>;
 export type CreateTimeBlocksBatchRequest = z.infer<typeof createTimeBlocksBatchSchema>;

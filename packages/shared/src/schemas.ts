@@ -145,6 +145,14 @@ export const createTimeBlocksBatchSchema = z.object({
   blocks: z.array(batchTimeBlockItemSchema).min(1)
 });
 
+export const updateTimeBlockSchema = z
+  .object({
+    ...blockWindowFields,
+    max_signups: positiveInt,
+    engineer_ids: engineerIdsSchema
+  })
+  .superRefine(validateBlockWindow);
+
 export const createRecurringTimeBlocksSchema = z
   .object({
     project_id: positiveInt,

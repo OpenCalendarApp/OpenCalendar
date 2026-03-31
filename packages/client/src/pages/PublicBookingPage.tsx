@@ -9,7 +9,7 @@ import type {
   WaitlistJoinResponse
 } from '@session-scheduler/shared';
 
-import { apiFetch, buildApiUrl } from '../api/client.js';
+import { apiPublicFetch, buildApiUrl } from '../api/client.js';
 import { TimeZoneSelect } from '../components/TimeZoneSelect.js';
 import { useTimezone } from '../context/TimezoneContext.js';
 import { useToast } from '../context/ToastContext.js';
@@ -76,7 +76,7 @@ export function PublicBookingPage(): JSX.Element {
       setError(null);
 
       try {
-        const response = await apiFetch<PublicProjectResponse>(`/schedule/project/${shareToken}`);
+        const response = await apiPublicFetch<PublicProjectResponse>(`/schedule/project/${shareToken}`);
         setProjectResponse(response);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : 'Unable to load project booking page');
@@ -159,7 +159,7 @@ export function PublicBookingPage(): JSX.Element {
 
     try {
       if (bookingMode === 'waitlist') {
-        const response = await apiFetch<WaitlistJoinResponse>(`/schedule/waitlist/${shareToken}`, {
+        const response = await apiPublicFetch<WaitlistJoinResponse>(`/schedule/waitlist/${shareToken}`, {
           method: 'POST',
           body: JSON.stringify({
             password,
@@ -173,7 +173,7 @@ export function PublicBookingPage(): JSX.Element {
         setStep('confirm');
         showToast(response.already_exists ? 'Already on waitlist.' : 'Added to waitlist.', 'success');
       } else {
-        const response = await apiFetch<BookingResponse>(`/schedule/book/${shareToken}`, {
+        const response = await apiPublicFetch<BookingResponse>(`/schedule/book/${shareToken}`, {
           method: 'POST',
           body: JSON.stringify({
             password,

@@ -5,17 +5,32 @@ interface ApiError {
   details?: unknown;
 }
 
+interface ApiFetchOptions extends RequestInit {
+  includeAuth?: boolean;
+}
+
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 export function buildApiUrl(path: string): string {
   return `${API_BASE_URL}${path}`;
 }
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getStoredToken();
-  const headers = new Headers(init?.headers);
+function getBearerToken(): string | null {
+  const token = getStoredToken()?.trim();
 
-  if (init?.body && !headers.has('Content-Type')) {
+  if (!token || token === 'null' || token === 'undefined') {
+    return null;
+  }
+
+  return token;
+}
+
+export async function apiFetch<T>(path: string, init?: ApiFetchOptions): Promise<T> {
+  const { includeAuth = true, ...requestInit } = init ?? {};
+  const token = includeAuth ? getBearerToken() : null;
+  const headers = new Headers(requestInit.headers);
+
+  if (requestInit.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
   if (token) {
@@ -23,7 +38,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   const response = await fetch(buildApiUrl(path), {
-    ...init,
+    ...requestInit,
     headers
   });
 
@@ -41,4 +56,8 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   return payload as T;
+}
+
+export async function apiPublicFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  return apiFetch<T>(path, { ...init, includeAuth: false });
 }

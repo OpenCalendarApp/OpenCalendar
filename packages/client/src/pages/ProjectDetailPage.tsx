@@ -5,6 +5,7 @@ import type {
   ProjectDetail,
   ProjectDetailResponse,
   ProjectResponse,
+  TimeBlocksResponse,
   TimeBlockWithRelations,
   UpdateProjectRequest
 } from '@session-scheduler/shared';
@@ -16,7 +17,7 @@ import { TimeZoneSelect } from '../components/TimeZoneSelect.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useTimezone } from '../context/TimezoneContext.js';
 import { useToast } from '../context/ToastContext.js';
-import { formatDateTimeInTimeZone } from '../utils/timezone.js';
+import { formatDateTimeInTimeZone, getDateKeyInTimeZone, toIsoStringInTimeZone } from '../utils/timezone.js';
 
 interface ProjectFormState {
   name: string;
@@ -32,6 +33,35 @@ interface ProjectFormState {
 type ConfirmAction =
   | { type: 'delete-project' }
   | { type: 'delete-time-block'; timeBlockId: number };
+
+interface ProjectSignupRow {
+  id: number;
+  client_first_name: string;
+  client_last_name: string;
+  client_email: string;
+  client_phone: string;
+  start_time: string;
+  end_time: string;
+  booked_at: string;
+  cancelled_at: string | null;
+}
+
+interface EditTimeBlockState {
+  block: TimeBlockWithRelations;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+}
+
+function formatTimeInputValue(isoDateTime: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(new Date(isoDateTime));
+}
 
 function toFormState(project: ProjectDetail): ProjectFormState {
   return {
@@ -62,6 +92,8 @@ export function ProjectDetailPage(): JSX.Element {
   const [blockDeletePendingId, setBlockDeletePendingId] = useState<number | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [isAddTimeBlockModalOpen, setIsAddTimeBlockModalOpen] = useState(false);
+  const [editBlockState, setEditBlockState] = useState<EditTimeBlockState | null>(null);
+  const [editPending, setEditPending] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
   const isPm = user?.role === 'pm' || user?.role === 'admin';
@@ -103,6 +135,36 @@ export function ProjectDetailPage(): JSX.Element {
     return `${window.location.origin}/schedule/${project.share_token}`;
   }, [project]);
 
+  const signupRows = useMemo<ProjectSignupRow[]>(() => {
+    if (!project) {
+      return [];
+    }
+
+    return project.time_blocks
+      .flatMap((block) =>
+        block.bookings.map((booking) => ({
+          id: booking.id,
+          client_first_name: booking.client_first_name,
+          client_last_name: booking.client_last_name,
+          client_email: booking.client_email,
+          client_phone: booking.client_phone,
+          start_time: block.start_time,
+          end_time: block.end_time,
+          booked_at: booking.booked_at,
+          cancelled_at: booking.cancelled_at
+        }))
+      )
+      .sort((left, right) => {
+        const leftStart = new Date(left.start_time).getTime();
+        const rightStart = new Date(right.start_time).getTime();
+        if (leftStart !== rightStart) {
+          return leftStart - rightStart;
+        }
+
+        return new Date(right.booked_at).getTime() - new Date(left.booked_at).getTime();
+      });
+  }, [project]);
+
   function canDeleteBlock(block: TimeBlockWithRelations): boolean {
     if (!user) {
       return false;
@@ -113,6 +175,17 @@ export function ProjectDetailPage(): JSX.Element {
     }
 
     return block.is_personal && block.created_by === user.id;
+  }
+
+  function startEditTimeBlock(block: TimeBlockWithRelations): void {
+    setError(null);
+    setEditBlockState({
+      block,
+      startDate: getDateKeyInTimeZone(block.start_time, timeZone),
+      startTime: formatTimeInputValue(block.start_time, timeZone),
+      endDate: getDateKeyInTimeZone(block.end_time, timeZone),
+      endTime: formatTimeInputValue(block.end_time, timeZone)
+    });
   }
 
   async function handleCopyShareLink(): Promise<void> {
@@ -224,6 +297,42 @@ export function ProjectDetailPage(): JSX.Element {
     } finally {
       setBlockDeletePendingId(null);
       setConfirmAction(null);
+    }
+  }
+
+  async function handleSaveEditedTimeBlock(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+
+    if (!editBlockState) {
+      return;
+    }
+
+    setEditPending(true);
+    setError(null);
+
+    try {
+      const startIso = toIsoStringInTimeZone(editBlockState.startDate, editBlockState.startTime, timeZone);
+      const endIso = toIsoStringInTimeZone(editBlockState.endDate, editBlockState.endTime, timeZone);
+
+      await apiFetch<TimeBlocksResponse>(`/time-blocks/${editBlockState.block.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          start_time: startIso,
+          end_time: endIso,
+          max_signups: editBlockState.block.max_signups,
+          engineer_ids: editBlockState.block.engineers.map((engineer) => engineer.id)
+        })
+      });
+
+      await loadProject();
+      showToast('Time block updated.', 'success');
+      setEditBlockState(null);
+    } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : 'Unable to update time block';
+      setError(message);
+      showToast(message, 'error');
+    } finally {
+      setEditPending(false);
     }
   }
 
@@ -461,14 +570,24 @@ export function ProjectDetailPage(): JSX.Element {
                     </td>
                     <td>
                       {canDeleteBlock(block) ? (
-                        <button
-                          type="button"
-                          className="secondary-button small-button"
-                          onClick={() => handleDeleteTimeBlockRequest(block.id)}
-                          disabled={blockDeletePendingId === block.id}
-                        >
-                          {blockDeletePendingId === block.id ? 'Deleting...' : 'Delete'}
-                        </button>
+                        <div className="button-row">
+                          <button
+                            type="button"
+                            className="secondary-button small-button"
+                            onClick={() => startEditTimeBlock(block)}
+                            disabled={blockDeletePendingId === block.id}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary-button small-button"
+                            onClick={() => handleDeleteTimeBlockRequest(block.id)}
+                            disabled={blockDeletePendingId === block.id}
+                          >
+                            {blockDeletePendingId === block.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
                       ) : (
                         <span className="hint">No actions</span>
                       )}
@@ -481,6 +600,42 @@ export function ProjectDetailPage(): JSX.Element {
         )}
       </div>
 
+      <div className="detail-card">
+        <h3>Signed Up Clients</h3>
+        {signupRows.length === 0 ? (
+          <p className="hint">No clients have signed up yet.</p>
+        ) : (
+          <table className="block-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Slot</th>
+                <th>Booked</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {signupRows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.client_first_name} {row.client_last_name}</td>
+                  <td>{row.client_email}</td>
+                  <td>{row.client_phone}</td>
+                  <td>
+                    {formatDateTimeInTimeZone(row.start_time, timeZone)}
+                    <br />
+                    <span className="hint">to {formatDateTimeInTimeZone(row.end_time, timeZone)}</span>
+                  </td>
+                  <td>{formatDateTimeInTimeZone(row.booked_at, timeZone)}</td>
+                  <td>{row.cancelled_at ? 'Cancelled' : 'Active'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
       {isAddTimeBlockModalOpen && user ? (
         <AddTimeBlockModal
           project={project}
@@ -488,6 +643,76 @@ export function ProjectDetailPage(): JSX.Element {
           onClose={() => setIsAddTimeBlockModalOpen(false)}
           onCreated={loadProject}
         />
+      ) : null}
+
+      {editBlockState ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Edit time block">
+          <div className="modal-card">
+            <h3>Edit Time Block</h3>
+            <p className="hint">Times are interpreted in {timeZone}.</p>
+
+            <form onSubmit={(event) => void handleSaveEditedTimeBlock(event)}>
+              <label>
+                Start Date
+                <input
+                  type="date"
+                  value={editBlockState.startDate}
+                  onChange={(event) =>
+                    setEditBlockState((prev) => (prev ? { ...prev, startDate: event.target.value } : prev))
+                  }
+                  required
+                />
+              </label>
+              <label>
+                Start Time
+                <input
+                  type="time"
+                  value={editBlockState.startTime}
+                  onChange={(event) =>
+                    setEditBlockState((prev) => (prev ? { ...prev, startTime: event.target.value } : prev))
+                  }
+                  required
+                />
+              </label>
+              <label>
+                End Date
+                <input
+                  type="date"
+                  value={editBlockState.endDate}
+                  onChange={(event) =>
+                    setEditBlockState((prev) => (prev ? { ...prev, endDate: event.target.value } : prev))
+                  }
+                  required
+                />
+              </label>
+              <label>
+                End Time
+                <input
+                  type="time"
+                  value={editBlockState.endTime}
+                  onChange={(event) =>
+                    setEditBlockState((prev) => (prev ? { ...prev, endTime: event.target.value } : prev))
+                  }
+                  required
+                />
+              </label>
+
+              <div className="button-row">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setEditBlockState(null)}
+                  disabled={editPending}
+                >
+                  Cancel
+                </button>
+                <button type="submit" disabled={editPending}>
+                  {editPending ? 'Saving...' : 'Save Time Block'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       ) : null}
 
       {confirmAction?.type === 'delete-project' ? (

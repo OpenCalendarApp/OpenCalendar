@@ -6,6 +6,7 @@ import {
   createTimeBlockSchema,
   createTimeBlocksBatchSchema,
   numericIdParamsSchema,
+  updateTimeBlockSchema,
   type Project,
   type TimeBlock,
   type TimeBlocksResponse
@@ -22,6 +23,14 @@ const router = Router();
 type ProjectCapacityRow = Pick<Project, 'id' | 'is_group_signup' | 'max_group_size'>;
 type TimeBlockDeleteRow = {
   id: number;
+  created_by: number;
+  is_personal: boolean;
+  active_booking_count: number;
+};
+
+type TimeBlockUpdateLookupRow = {
+  id: number;
+  project_id: number;
   created_by: number;
   is_personal: boolean;
   active_booking_count: number;
@@ -397,6 +406,149 @@ router.post('/recurring', authMiddleware, requireRole(['pm', 'admin']), asyncHan
   } catch {
     await client.query('ROLLBACK');
     res.status(500).json({ error: 'Unable to create recurring time blocks' });
+  } finally {
+    client.release();
+  }
+}));
+
+router.put('/:id', authMiddleware, asyncHandler(async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
+  const paramsParse = numericIdParamsSchema.safeParse(req.params);
+  if (!paramsParse.success) {
+    res.status(400).json({ error: 'Invalid time block id', details: paramsParse.error.flatten() });
+    return;
+  }
+
+  const bodyParse = updateTimeBlockSchema.safeParse(req.body);
+  if (!bodyParse.success) {
+    res.status(400).json({ error: 'Validation failed', details: bodyParse.error.flatten() });
+    return;
+  }
+
+  const timeBlockId = paramsParse.data.id;
+  const data = bodyParse.data;
+
+  const lookupResult = await pool.query<TimeBlockUpdateLookupRow>(
+    `
+    SELECT
+      tb.id,
+      tb.project_id,
+      tb.created_by,
+      tb.is_personal,
+      COUNT(b.id) FILTER (WHERE b.cancelled_at IS NULL)::int AS active_booking_count
+    FROM time_blocks tb
+    LEFT JOIN bookings b ON b.time_block_id = tb.id
+    WHERE tb.id = $1
+      AND tb.tenant_id = $2
+    GROUP BY tb.id
+    `,
+    [timeBlockId, req.user.tenantId]
+  );
+
+  const existingBlock = lookupResult.rows[0];
+  if (!existingBlock) {
+    res.status(404).json({ error: 'Time block not found' });
+    return;
+  }
+
+  const isEngineer = req.user.role === 'engineer';
+  if (isEngineer && (!existingBlock.is_personal || existingBlock.created_by !== req.user.userId)) {
+    res.status(403).json({ error: 'Engineers can only edit their own personal time blocks' });
+    return;
+  }
+
+  if (existingBlock.active_booking_count > 0) {
+    res.status(409).json({
+      error: 'Cannot edit time block with active bookings',
+      details: 'Cancel active bookings before editing this block'
+    });
+    return;
+  }
+
+  const project = await fetchProjectCapacity(existingBlock.project_id, req.user.tenantId);
+  if (!project) {
+    res.status(404).json({ error: 'Project not found' });
+    return;
+  }
+
+  const maxSignups = isEngineer ? 1 : data.max_signups;
+  const maxSignupsValidation = validateMaxSignups(project, maxSignups);
+  if (maxSignupsValidation) {
+    res.status(400).json({ error: 'Validation failed', details: maxSignupsValidation });
+    return;
+  }
+
+  const engineerIds = isEngineer ? [req.user.userId] : data.engineer_ids;
+  const missingEngineerIds = await validateEngineerIds(engineerIds, req.user.tenantId);
+  if (missingEngineerIds.length > 0) {
+    res.status(400).json({
+      error: 'Validation failed',
+      details: `Unknown engineer ids: ${missingEngineerIds.join(', ')}`
+    });
+    return;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const updateResult = await client.query<TimeBlock>(
+      `
+      UPDATE time_blocks
+      SET
+        start_time = $1,
+        end_time = $2,
+        max_signups = $3
+      WHERE id = $4
+        AND tenant_id = $5
+      RETURNING id, project_id, start_time, end_time, max_signups, is_personal, created_by, created_at
+      `,
+      [data.start_time, data.end_time, maxSignups, timeBlockId, req.user.tenantId]
+    );
+
+    const updatedBlock = updateResult.rows[0];
+    if (!updatedBlock) {
+      await client.query('ROLLBACK');
+      res.status(500).json({ error: 'Unable to update time block' });
+      return;
+    }
+
+    await client.query(
+      `
+      DELETE FROM time_block_engineers
+      WHERE time_block_id = $1
+      `,
+      [timeBlockId]
+    );
+
+    await assignEngineersToBlock(client, timeBlockId, engineerIds);
+
+    await recordAuditEventSafe({
+      tenantId: req.user.tenantId,
+      actorUserId: req.user.userId,
+      actorRole: req.user.role,
+      action: isEngineer ? 'time_block.personal_updated' : 'time_block.updated',
+      entityType: 'time_block',
+      entityId: timeBlockId,
+      metadata: {
+        project_id: existingBlock.project_id,
+        max_signups: maxSignups,
+        engineer_ids: engineerIds
+      },
+      db: client
+    });
+
+    await client.query('COMMIT');
+
+    const response: TimeBlocksResponse = { time_blocks: [updatedBlock] };
+    res.json(response);
+  } catch {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Unable to update time block' });
   } finally {
     client.release();
   }

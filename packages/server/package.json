@@ -1,6 +1,6 @@
 {
   "name": "@session-scheduler/server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +14,7 @@
     "db:seed": "npm run build && node dist/db/seed.js"
   },
   "dependencies": {
-    "@session-scheduler/shared": "0.2.0",
+    "@session-scheduler/shared": "0.3.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

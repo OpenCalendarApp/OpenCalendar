@@ -87,6 +87,56 @@ function formatDateLabel(dateKey: string): string {
   });
 }
 
+interface LocalDateTimeValue {
+  dateKey: string;
+  timeValue: string;
+}
+
+function shiftLocalDateTimeByMinutes(
+  dateKey: string,
+  timeValue: string,
+  minutesToAdd: number
+): LocalDateTimeValue {
+  const [yearPart, monthPart, dayPart] = dateKey.split('-');
+  const [hourPart, minutePart] = timeValue.split(':');
+
+  const year = Number(yearPart || 1970);
+  const month = Number(monthPart || 1);
+  const day = Number(dayPart || 1);
+  const hour = Number(hourPart || 0);
+  const minute = Number(minutePart || 0);
+
+  const shifted = new Date(Date.UTC(year, month - 1, day, hour, minute + minutesToAdd, 0, 0));
+  const shiftedYear = shifted.getUTCFullYear().toString().padStart(4, '0');
+  const shiftedMonth = (shifted.getUTCMonth() + 1).toString().padStart(2, '0');
+  const shiftedDay = shifted.getUTCDate().toString().padStart(2, '0');
+  const shiftedHour = shifted.getUTCHours().toString().padStart(2, '0');
+  const shiftedMinute = shifted.getUTCMinutes().toString().padStart(2, '0');
+
+  return {
+    dateKey: `${shiftedYear}-${shiftedMonth}-${shiftedDay}`,
+    timeValue: `${shiftedHour}:${shiftedMinute}`
+  };
+}
+
+function buildSlotIsoWindow(args: {
+  dateKey: string;
+  startTime: string;
+  slotIndex: number;
+  slotLengthMinutes: number;
+  timeZone: string;
+}): { start_time: string; end_time: string } {
+  const startOffsetMinutes = args.slotIndex * args.slotLengthMinutes;
+  const endOffsetMinutes = (args.slotIndex + 1) * args.slotLengthMinutes;
+  const localStart = shiftLocalDateTimeByMinutes(args.dateKey, args.startTime, startOffsetMinutes);
+  const localEnd = shiftLocalDateTimeByMinutes(args.dateKey, args.startTime, endOffsetMinutes);
+
+  return {
+    start_time: toIsoStringInTimeZone(localStart.dateKey, localStart.timeValue, args.timeZone),
+    end_time: toIsoStringInTimeZone(localEnd.dateKey, localEnd.timeValue, args.timeZone)
+  };
+}
+
 export function AddTimeBlockModal({
   project,
   userRole,
@@ -193,8 +243,6 @@ export function AddTimeBlockModal({
         throw new Error('Select at least one date');
       }
 
-      const sessionLengthMs = slotLengthMinutes * 60 * 1000;
-
       if (isPm) {
         if (recurringEnabled) {
           if (targetDates.length !== 1) {
@@ -205,12 +253,17 @@ export function AddTimeBlockModal({
             throw new Error('Select one date for recurring schedule');
           }
 
-          const firstStart = toIsoStringInTimeZone(singleDate, startTime, timeZone);
-          const firstStartMs = new Date(firstStart).getTime();
+          const firstWindow = buildSlotIsoWindow({
+            dateKey: singleDate,
+            startTime,
+            slotIndex: 0,
+            slotLengthMinutes,
+            timeZone
+          });
           const recurringPayload: CreateRecurringTimeBlocksRequest = {
             project_id: project.id,
-            start_time: new Date(firstStartMs).toISOString(),
-            end_time: new Date(firstStartMs + sessionLengthMs).toISOString(),
+            start_time: firstWindow.start_time,
+            end_time: firstWindow.end_time,
             max_signups: project.is_group_signup ? maxSignups : 1,
             engineer_ids: selectedEngineerIds,
             slots_per_occurrence: slotCount,
@@ -229,16 +282,18 @@ export function AddTimeBlockModal({
           const blocks: CreateTimeBlocksBatchRequest['blocks'] = [];
 
           for (const dateKey of targetDates) {
-            const firstStart = toIsoStringInTimeZone(dateKey, startTime, timeZone);
-            const firstStartMs = new Date(firstStart).getTime();
-
             for (let index = 0; index < slotCount; index += 1) {
-              const startMs = firstStartMs + index * sessionLengthMs;
-              const endMs = startMs + sessionLengthMs;
+              const window = buildSlotIsoWindow({
+                dateKey,
+                startTime,
+                slotIndex: index,
+                slotLengthMinutes,
+                timeZone
+              });
 
               blocks.push({
-                start_time: new Date(startMs).toISOString(),
-                end_time: new Date(endMs).toISOString(),
+                start_time: window.start_time,
+                end_time: window.end_time,
                 max_signups: project.is_group_signup ? maxSignups : 1,
                 engineer_ids: selectedEngineerIds
               });
@@ -257,13 +312,18 @@ export function AddTimeBlockModal({
         }
       } else {
         for (const dateKey of targetDates) {
-          const firstStart = toIsoStringInTimeZone(dateKey, startTime, timeZone);
-          const firstStartMs = new Date(firstStart).getTime();
+          const window = buildSlotIsoWindow({
+            dateKey,
+            startTime,
+            slotIndex: 0,
+            slotLengthMinutes,
+            timeZone
+          });
 
           const payload: CreateTimeBlockRequest = {
             project_id: project.id,
-            start_time: new Date(firstStartMs).toISOString(),
-            end_time: new Date(firstStartMs + sessionLengthMs).toISOString(),
+            start_time: window.start_time,
+            end_time: window.end_time,
             max_signups: 1,
             engineer_ids: []
           };

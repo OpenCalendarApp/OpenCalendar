@@ -113,7 +113,7 @@
 ## Low Priority
 - [x] Audit log (who did what)
 - [x] Waitlist system
-- [ ] SSO (SAML/OIDC)
+- [x] SSO (SAML/OIDC)
 
 ---
 

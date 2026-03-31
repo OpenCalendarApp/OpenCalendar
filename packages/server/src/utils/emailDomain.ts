@@ -21,9 +21,16 @@ export function isEmailAllowedForProjectDomain(
   email: string,
   allowlistedDomain: string | null | undefined
 ): boolean {
-  const normalizedAllowlist = normalizeProjectEmailDomainAllowlist(allowlistedDomain);
-  if (!normalizedAllowlist) {
+  if (allowlistedDomain === undefined || allowlistedDomain === null) {
     return true;
+  }
+
+  const normalizedAllowlist = allowlistedDomain.trim().toLowerCase();
+  if (normalizedAllowlist.length === 0) {
+    return true;
+  }
+  if (!ROOT_DOMAIN_PATTERN.test(normalizedAllowlist)) {
+    return false;
   }
 
   const trimmedEmail = email.trim().toLowerCase();
@@ -35,4 +42,3 @@ export function isEmailAllowedForProjectDomain(
   const emailDomain = trimmedEmail.slice(atSymbolIndex + 1);
   return emailDomain === normalizedAllowlist || emailDomain.endsWith(`.${normalizedAllowlist}`);
 }
-

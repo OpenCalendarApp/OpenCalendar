@@ -25,6 +25,8 @@ void test('time block routes include recurring endpoint', async () => {
   const source = await fs.readFile(routePath, 'utf8');
 
   assert.ok(source.includes("router.post('/recurring'"), 'Expected recurring route registration');
+  assert.ok(source.includes("router.put('/:id'"), 'Expected time block update route registration');
   assert.ok(source.includes('createRecurringTimeBlocksSchema'), 'Expected recurring schema usage');
+  assert.ok(source.includes('updateTimeBlockSchema'), 'Expected update schema usage');
   assert.ok(source.includes('buildWeeklyRecurringWindows'), 'Expected recurrence window utility usage');
 });

@@ -8,7 +8,7 @@ import type {
   RescheduleResponse
 } from '@session-scheduler/shared';
 
-import { apiFetch, buildApiUrl } from '../api/client.js';
+import { apiPublicFetch, buildApiUrl } from '../api/client.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { TimeZoneSelect } from '../components/TimeZoneSelect.js';
 import { useTimezone } from '../context/TimezoneContext.js';
@@ -61,7 +61,7 @@ export function ReschedulePage(): JSX.Element {
       setCancelMessage(null);
 
       try {
-        const response = await apiFetch<BookingLookupResponse>(`/schedule/booking/${bookingToken}`);
+        const response = await apiPublicFetch<BookingLookupResponse>(`/schedule/booking/${bookingToken}`);
 
         if (shareToken && response.project.share_token !== shareToken) {
           setLookup(null);
@@ -110,7 +110,7 @@ export function ReschedulePage(): JSX.Element {
     setCancelMessage(null);
 
     try {
-      const response = await apiFetch<RescheduleResponse>(`/schedule/reschedule/${bookingToken}`, {
+      const response = await apiPublicFetch<RescheduleResponse>(`/schedule/reschedule/${bookingToken}`, {
         method: 'POST',
         body: JSON.stringify({ new_time_block_id: selectedSlotId })
       });
@@ -142,7 +142,7 @@ export function ReschedulePage(): JSX.Element {
     setSuccessMessage(null);
 
     try {
-      const response = await apiFetch<CancelBookingResponse>(`/schedule/cancel/${bookingToken}`, {
+      const response = await apiPublicFetch<CancelBookingResponse>(`/schedule/cancel/${bookingToken}`, {
         method: 'POST'
       });
       setCancelMessage(response.message);

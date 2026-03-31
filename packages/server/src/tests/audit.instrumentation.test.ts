@@ -20,5 +20,7 @@ void test('time block routes include audit-log instrumentation for create/delete
   assert.ok(source.includes("'time_block.created'"), 'Expected time_block.created action');
   assert.ok(source.includes("'time_block.batch_created'"), 'Expected time_block.batch_created action');
   assert.ok(source.includes("'time_block.recurring_created'"), 'Expected time_block.recurring_created action');
+  assert.ok(source.includes("'time_block.updated'"), 'Expected time_block.updated action');
+  assert.ok(source.includes("'time_block.personal_updated'"), 'Expected time_block.personal_updated action');
   assert.ok(source.includes("'time_block.deleted'"), 'Expected time_block.deleted action');
 });
