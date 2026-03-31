@@ -1,8 +1,18 @@
-# Session Scheduler (CalendarGenie)
+# CalendarGenie (Session Scheduler)
 
-Phase 1 platform foundation for a Session Scheduler monorepo.
+Multi-tenant session scheduling platform with a React/Vite frontend, Express API, PostgreSQL, and Microsoft Calendar integration.
 
-## Stack
+## Highlights
+
+- Tenant-aware setup flow for first admin bootstrap
+- Public booking with idempotency protection and email-domain allowlists
+- Recurring time blocks for project scheduling
+- Background queue for retryable booking email and calendar sync jobs
+- Microsoft Calendar OAuth integration for engineer scheduling
+- Data retention sweeps for redaction and cleanup policies
+- Built-in load testing scripts for capacity planning
+
+## Tech Stack
 
 - Frontend: React 18 + Vite + TypeScript
 - Backend: Express + TypeScript
@@ -10,7 +20,7 @@ Phase 1 platform foundation for a Session Scheduler monorepo.
 - Shared contracts: `@session-scheduler/shared`
 - Infra: Docker Compose (postgres + optional full stack)
 
-## Workspace Layout
+## Monorepo Layout
 
 - `packages/shared` shared types and validation schemas
 - `packages/server` API server, DB migration/seed scripts
@@ -100,7 +110,7 @@ Auto bump rules:
 - `minor`: Server-only changes (`packages/server/**`)
 - `major`: Both Client and Server changed
 
-## Background Queue + Backup Automation (Epic 11)
+## Background Queue + Backup Automation
 
 - The server now runs an in-memory background job queue for retryable tasks.
 - Booking lifecycle events enqueue `booking-email` jobs (booked, rescheduled, cancelled).
@@ -119,18 +129,18 @@ Auto bump rules:
   - `npm run db:backup`
   - `npm run db:restore -- backups/<file>.sql.gz`
 
-## Booking Idempotency (Epic 11)
+## Booking Idempotency
 
 - `POST /api/schedule/book/:shareToken` accepts an optional `Idempotency-Key` request header.
 - Repeating the same request with the same key returns the original `201` booking payload instead of creating duplicates.
 - Reusing a key with a different payload returns `409`.
 
-## Booking Email Domain Allowlist (Epic 11)
+## Booking Email Domain Allowlist
 
 - Projects can now define an optional `booking_email_domain_allowlist` (for example `client.com`).
 - Public booking rejects emails outside that domain (subdomains are allowed).
 
-## Microsoft Calendar Integration (Epic 11)
+## Microsoft Calendar Integration
 
 - Calendar sync is available for authenticated `engineer` users only.
 - Engineers can connect/disconnect Microsoft Calendar from the dashboard.
@@ -150,7 +160,7 @@ Auto bump rules:
   - `MICROSOFT_OAUTH_SUCCESS_REDIRECT_URL`
   - `MICROSOFT_OAUTH_ERROR_REDIRECT_URL`
 
-## Recurring Time Blocks (Epic 11)
+## Recurring Time Blocks
 
 - PMs can now create recurring weekly schedules from the "Add Time Blocks" modal.
 - New API endpoint: `POST /api/time-blocks/recurring` (also available under `/api/v1`).
@@ -159,14 +169,14 @@ Auto bump rules:
   - `recurrence.interval_weeks`
   - `recurrence.occurrences`
 
-## API Versioning (Epic 11)
+## API Versioning
 
 - API routes are now exposed under both:
   - legacy: `/api/*`
   - versioned: `/api/v1/*`
 - New clients should target `/api/v1`.
 
-## Data Retention + Deletion Policies (Epic 11)
+## Data Retention + Deletion Policies
 
 - The server now runs a periodic retention sweep that:
   - deletes expired booking idempotency records
@@ -180,7 +190,7 @@ Auto bump rules:
   - `DATA_RETENTION_IDEMPOTENCY_KEY_DELETE_DAYS`
 - Redacted booking fields are replaced with `[deleted]` markers and a synthetic email (`deleted+<id>@redacted.local`).
 
-## Load Testing + Capacity Planning (Epic 11)
+## Load Testing + Capacity Planning
 
 - A built-in load test runner is available at `scripts/load-test.mjs`.
 - Supported scenarios:
@@ -196,12 +206,6 @@ Auto bump rules:
 - PM: `pm@example.com` / `password123`
 - Engineer: `engineer@example.com` / `password123`
 
-## Phase 1 Scope
+## Status
 
-Phase 1 includes:
-
-- Monorepo + npm workspaces
-- TypeScript project configs
-- ESLint + Prettier setup
-- Docker Compose orchestration
-- Dev/database scripts for local setup
+CalendarGenie is under active development. The repository currently includes a full local development workflow, Docker-backed infrastructure, and production-oriented scheduling capabilities listed above.
