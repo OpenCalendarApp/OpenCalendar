@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-POSTGRES_DB="${POSTGRES_DB:-session_scheduler}"
+POSTGRES_DB="${POSTGRES_DB:-calendar_genie}"
 POSTGRES_USER="${POSTGRES_USER:-ss_admin}"
 BACKUP_DIR="${BACKUP_DIR:-$ROOT_DIR/backups}"
 TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"

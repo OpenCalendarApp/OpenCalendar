@@ -19,7 +19,7 @@ import {
   type RegisterRequest,
   type User,
   type UserRecord
-} from '@session-scheduler/shared';
+} from '@calendar-genie/shared';
 
 import { authMiddleware, requireRole, signToken } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';

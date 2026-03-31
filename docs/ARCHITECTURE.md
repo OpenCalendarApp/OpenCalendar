@@ -1,4 +1,4 @@
-# Session Scheduler — Architecture Document
+# Calendar Genie — Architecture Document
 
 > **Version:** 1.0  
 > **Last Updated:** March 2026  
@@ -25,7 +25,7 @@
 
 ### Purpose
 
-Session Scheduler is an internal scheduling platform that allows Project Managers to create time-blocked sessions for projects, assign engineers to those blocks, and generate password-protected booking links for external clients. Clients visit the link, authenticate with a project-specific password, select an available time slot, and receive a downloadable `.ics` calendar reminder. Clients can also reschedule or cancel, which automatically frees the original slot.
+Calendar Genie is an internal scheduling platform that allows Project Managers to create time-blocked sessions for projects, assign engineers to those blocks, and generate password-protected booking links for external clients. Clients visit the link, authenticate with a project-specific password, select an available time slot, and receive a downloadable `.ics` calendar reminder. Clients can also reschedule or cancel, which automatically frees the original slot.
 
 ### Core Requirements
 
@@ -215,18 +215,18 @@ External:
 ### Monorepo Structure
 
 ```
-session-scheduler/
+calendar-genie/
 ├── package.json                 # npm workspaces root
 ├── docker-compose.yml           # Orchestration
 ├── .env.example                 # Environment template
 ├── docker/
 │   └── init.sql                 # Database schema
 ├── packages/
-│   ├── shared/                  # @session-scheduler/shared
+│   ├── shared/                  # @calendar-genie/shared
 │   │   ├── package.json
 │   │   └── src/
 │   │       └── types.ts         # Shared TypeScript interfaces
-│   ├── server/                  # @session-scheduler/server
+│   ├── server/                  # @calendar-genie/server
 │   │   ├── package.json
 │   │   ├── Dockerfile
 │   │   ├── tsconfig.json
@@ -246,7 +246,7 @@ session-scheduler/
 │   │       │   └── booking.ts   # Public booking, reschedule, .ics
 │   │       └── utils/
 │   │           └── ics.ts       # .ics file generator
-│   └── client/                  # @session-scheduler/client
+│   └── client/                  # @calendar-genie/client
 │       ├── package.json
 │       ├── Dockerfile
 │       ├── nginx.conf           # SPA routing + API proxy
@@ -917,7 +917,7 @@ server {
 
 | Variable | Default | Required | Description |
 |----------|---------|:--------:|-------------|
-| `POSTGRES_DB` | `session_scheduler` | ✅ | Database name |
+| `POSTGRES_DB` | `calendar_genie` | ✅ | Database name |
 | `POSTGRES_USER` | `ss_admin` | ✅ | DB username |
 | `POSTGRES_PASSWORD` | — | ✅ | **Change in production** |
 | `POSTGRES_PORT` | `5432` | | Host port mapping |

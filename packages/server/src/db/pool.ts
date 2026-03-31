@@ -27,7 +27,7 @@ function buildDatabaseUrlFromParts(): string {
   const password = process.env.POSTGRES_PASSWORD ?? 'change-me';
   const host = process.env.POSTGRES_HOST ?? 'localhost';
   const port = parsePositiveInt(process.env.POSTGRES_PORT, 5432);
-  const database = process.env.POSTGRES_DB ?? 'session_scheduler';
+  const database = process.env.POSTGRES_DB ?? 'calendar_genie';
   const sslMode = process.env.DATABASE_SSLMODE ?? process.env.PGSSLMODE;
   const sslSuffix = sslMode ? `?sslmode=${encodeURIComponent(sslMode)}` : '';
 

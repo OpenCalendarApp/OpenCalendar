@@ -47,7 +47,7 @@ function foldLine(line: string, maxLength = 75): string[] {
 }
 
 export function createCalendarEvent(input: CalendarInput): string {
-  const uid = `booking-${crypto.randomUUID()}@session-scheduler`;
+  const uid = `booking-${crypto.randomUUID()}@calendar-genie`;
   const now = toIcsDate(new Date().toISOString());
   const start = toIcsDate(input.startIso);
   const end = toIcsDate(input.endIso);
@@ -55,10 +55,10 @@ export function createCalendarEvent(input: CalendarInput): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Session Scheduler//EN',
+    'PRODID:-//Calendar Genie//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:Session Scheduler',
+    'X-WR-CALNAME:Calendar Genie',
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTAMP:${now}`,

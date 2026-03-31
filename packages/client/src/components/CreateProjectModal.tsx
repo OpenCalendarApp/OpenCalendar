@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 
-import type { CreateProjectRequest, ProjectResponse } from '@session-scheduler/shared';
+import type { CreateProjectRequest, ProjectResponse } from '@calendar-genie/shared';
 
 import { apiFetch } from '../api/client.js';
 import { useToast } from '../context/ToastContext.js';

@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom';
 
+import { BrandLogo } from './BrandLogo.js';
 import { useAuth } from '../context/AuthContext.js';
 
 export function Layout(): JSX.Element {
@@ -8,7 +9,12 @@ export function Layout(): JSX.Element {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <h1>Session Scheduler</h1>
+        <div className="sidebar-brand">
+          <Link to="/dashboard" className="brand-link" aria-label="Calendar Genie dashboard">
+            <BrandLogo className="brand-logo sidebar-logo" />
+          </Link>
+          <p className="brand-subtitle">Scheduling infrastructure for client session teams.</p>
+        </div>
         {user ? (
           <p className="user-badge">
             {user.first_name} {user.last_name} ({user.role.toUpperCase()})

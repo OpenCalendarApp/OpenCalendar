@@ -6,9 +6,10 @@ import type {
   CancelBookingResponse,
   PublicSlotInfo,
   RescheduleResponse
-} from '@session-scheduler/shared';
+} from '@calendar-genie/shared';
 
 import { apiPublicFetch, buildApiUrl } from '../api/client.js';
+import { BrandLogo } from '../components/BrandLogo.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { TimeZoneSelect } from '../components/TimeZoneSelect.js';
 import { useTimezone } from '../context/TimezoneContext.js';
@@ -160,7 +161,7 @@ export function ReschedulePage(): JSX.Element {
 
   function downloadCalendar(token: string): void {
     const tokenPrefix = token.slice(0, 8);
-    triggerDownload(buildApiUrl(`/schedule/calendar/${token}`), `session-${tokenPrefix}.ics`);
+    triggerDownload(buildApiUrl(`/schedule/calendar/${token}`), `calendar-genie-${tokenPrefix}.ics`);
     showToast('Calendar download started.', 'info');
   }
 
@@ -193,6 +194,10 @@ export function ReschedulePage(): JSX.Element {
   return (
     <section className="public-booking-page">
       <div className="detail-card">
+        <div className="public-brand-bar">
+          <BrandLogo className="brand-logo public-brand-logo" />
+          <p className="hint public-brand-copy">Manage your booking through Calendar Genie.</p>
+        </div>
         <h2>Reschedule: {lookup.project.name}</h2>
         <p>
           Current booking for {lookup.booking.client_first_name} {lookup.booking.client_last_name}

@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
-import type { SetupInitializeResponse, SetupStatusResponse } from '@session-scheduler/shared';
+import type { SetupInitializeResponse, SetupStatusResponse } from '@calendar-genie/shared';
 
 import { apiFetch } from '../api/client.js';
+import { BrandLogo } from '../components/BrandLogo.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useToast } from '../context/ToastContext.js';
 
@@ -115,6 +116,10 @@ export function SetupPage(): JSX.Element {
 
   return (
     <div className="center-card">
+      <div className="auth-brand">
+        <BrandLogo variant="stacked" className="brand-logo auth-brand-logo" />
+        <p className="hint">Set up your first Calendar Genie tenant and admin workspace.</p>
+      </div>
       <h2>Initial Setup</h2>
       <p className="hint">
         Create the first admin account and tenant profile.

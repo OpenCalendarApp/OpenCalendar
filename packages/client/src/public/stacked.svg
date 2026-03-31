@@ -1,0 +1,17 @@
+<svg width="512" height="600" viewBox="0 0 512 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="grad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4FD1C5"/>
+      <stop offset="60%" stop-color="#3A6BFF"/>
+      <stop offset="100%" stop-color="#1E2A78"/>
+    </radialGradient>
+  </defs>
+  <circle cx="256" cy="190" r="140" fill="url(#grad)"/>
+  <g stroke="#E5E7EB" stroke-width="10" fill="none">
+    <path d="M256 82 A108 108 0 0 1 364 190"/>
+    <path d="M364 190 A108 108 0 0 1 256 298"/>
+    <path d="M256 298 A108 108 0 0 1 148 190"/>
+    <path d="M148 190 A108 108 0 0 1 256 82"/>
+  </g>
+  <text x="256" y="430" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="56" fill="#0F172A">Calendar<tspan fill="#3A6BFF">Genie</tspan></text>
+</svg>

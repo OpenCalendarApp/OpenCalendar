@@ -7,9 +7,10 @@ import type {
   PublicSlotInfo,
   PublicWaitlistSlotInfo,
   WaitlistJoinResponse
-} from '@session-scheduler/shared';
+} from '@calendar-genie/shared';
 
 import { apiPublicFetch, buildApiUrl } from '../api/client.js';
+import { BrandLogo } from '../components/BrandLogo.js';
 import { TimeZoneSelect } from '../components/TimeZoneSelect.js';
 import { useTimezone } from '../context/TimezoneContext.js';
 import { useToast } from '../context/ToastContext.js';
@@ -39,6 +40,14 @@ function triggerDownload(url: string, filename: string): void {
 
 function formatSlotLabel(slot: PublicSlotInfo, timeZone: string): string {
   return `${formatDateTimeInTimeZone(slot.start_time, timeZone)} - ${formatTimeInTimeZone(slot.end_time, timeZone)}`;
+}
+
+function formatPhoneNumber(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 10);
+  if (digits.length === 0) return '';
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
 export function PublicBookingPage(): JSX.Element {
@@ -154,6 +163,12 @@ export function PublicBookingPage(): JSX.Element {
       return;
     }
 
+    const phoneDigits = contact.phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10) {
+      setError('Please enter a valid 10-digit phone number in (XXX) XXX-XXXX format');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -229,7 +244,7 @@ export function PublicBookingPage(): JSX.Element {
     const tokenPrefix = bookingToken.slice(0, 8);
     triggerDownload(
       buildApiUrl(`/schedule/calendar/${bookingToken}`),
-      `session-${tokenPrefix}.ics`
+      `calendar-genie-${tokenPrefix}.ics`
     );
     showToast('Calendar download started.', 'info');
   }
@@ -262,6 +277,10 @@ export function PublicBookingPage(): JSX.Element {
   return (
     <section className="public-booking-page">
       <div className="detail-card">
+        <div className="public-brand-bar">
+          <BrandLogo className="brand-logo public-brand-logo" />
+          <p className="hint public-brand-copy">Book with confidence through Calendar Genie.</p>
+        </div>
         <h2>{projectResponse.project.name}</h2>
         <p>{projectResponse.project.description || 'No project description provided.'}</p>
         <TimeZoneSelect label="Display Timezone" />
@@ -457,8 +476,12 @@ export function PublicBookingPage(): JSX.Element {
             Phone
             <input
               type="tel"
+              inputMode="numeric"
+              placeholder="(XXX) XXX-XXXX"
               value={contact.phone}
-              onChange={(event) => setContact((prev) => ({ ...prev, phone: event.target.value }))}
+              onChange={(event) =>
+                setContact((prev) => ({ ...prev, phone: formatPhoneNumber(event.target.value) }))
+              }
               required
             />
           </label>

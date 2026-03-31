@@ -1,4 +1,4 @@
-import type { UserRole } from '@session-scheduler/shared';
+import type { UserRole } from '@calendar-genie/shared';
 
 declare global {
   namespace Express {

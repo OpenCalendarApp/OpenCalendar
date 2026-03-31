@@ -1,4 +1,4 @@
-# Session Scheduler — Build Backlog (with Future Considerations)
+# Calendar Genie — Build Backlog (with Future Considerations)
 
 ## Legend
 - **Priority:** P0 (critical), P1 (important), P2 (nice to have)

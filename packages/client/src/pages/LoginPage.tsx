@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import type { OidcSsoAuthUrlResponse, SetupStatusResponse } from '@session-scheduler/shared';
+import type { OidcSsoAuthUrlResponse, SetupStatusResponse } from '@calendar-genie/shared';
 
 import { apiFetch } from '../api/client.js';
+import { BrandLogo } from '../components/BrandLogo.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useToast } from '../context/ToastContext.js';
 
@@ -155,6 +156,10 @@ export function LoginPage(): JSX.Element {
 
   return (
     <div className="center-card">
+      <div className="auth-brand">
+        <BrandLogo variant="stacked" className="brand-logo auth-brand-logo" />
+        <p className="hint">Calendar Genie keeps teams, calendars, and client bookings aligned.</p>
+      </div>
       <h2>Login</h2>
       {!setupCheckPending && requiresSetup ? (
         <div className="detail-card status-card">

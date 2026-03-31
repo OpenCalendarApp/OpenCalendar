@@ -10,7 +10,7 @@ import {
   type Project,
   type TimeBlock,
   type TimeBlocksResponse
-} from '@session-scheduler/shared';
+} from '@calendar-genie/shared';
 
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';

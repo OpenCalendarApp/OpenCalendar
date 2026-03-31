@@ -9,7 +9,7 @@ import type {
   RefreshTokenRequest,
   RegisterRequest,
   User
-} from '@session-scheduler/shared';
+} from '@calendar-genie/shared';
 
 import { apiFetch } from '../api/client.js';
 import {

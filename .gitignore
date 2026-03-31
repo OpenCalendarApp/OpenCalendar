@@ -12,3 +12,4 @@ coverage
 
 # Docker volume artifacts
 .pgdata
+docs/internal

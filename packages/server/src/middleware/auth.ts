@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 
-import type { JwtPayload, UserRole } from '@session-scheduler/shared';
+import type { JwtPayload, UserRole } from '@calendar-genie/shared';
 
 import { createAuthToken, verifyAuthToken } from '../utils/auth.js';
 

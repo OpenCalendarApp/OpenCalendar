@@ -8,7 +8,7 @@ import type {
   TimeBlocksResponse,
   TimeBlockWithRelations,
   UpdateProjectRequest
-} from '@session-scheduler/shared';
+} from '@calendar-genie/shared';
 
 import { apiFetch } from '../api/client.js';
 import { AddTimeBlockModal } from '../components/AddTimeBlockModal.js';
@@ -193,12 +193,39 @@ export function ProjectDetailPage(): JSX.Element {
       return;
     }
 
+    // navigator.clipboard requires a secure context (HTTPS / localhost).
+    // Fall back to the legacy execCommand approach when unavailable.
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopyMessage('Booking link copied.');
+        showToast('Booking link copied.', 'success');
+        return;
+      } catch {
+        // fall through to legacy fallback below
+      }
+    }
+
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopyMessage('Booking link copied.');
-      showToast('Booking link copied.', 'success');
+      const textarea = document.createElement('textarea');
+      textarea.value = shareUrl;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+
+      if (success) {
+        setCopyMessage('Booking link copied.');
+        showToast('Booking link copied.', 'success');
+      } else {
+        setCopyMessage(`Copy unavailable — link: ${shareUrl}`);
+        showToast('Unable to copy booking link.', 'error');
+      }
     } catch {
-      setCopyMessage('Unable to copy link from this browser context.');
+      setCopyMessage(`Copy unavailable — link: ${shareUrl}`);
       showToast('Unable to copy booking link.', 'error');
     }
   }

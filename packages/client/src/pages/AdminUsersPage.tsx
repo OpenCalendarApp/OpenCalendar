@@ -7,7 +7,7 @@ import type {
   UpdateUserRoleRequest,
   UpdateUserStatusRequest,
   UserRole
-} from '@session-scheduler/shared';
+} from '@calendar-genie/shared';
 
 import { apiFetch } from '../api/client.js';
 import { useToast } from '../context/ToastContext.js';

@@ -4,7 +4,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { test } from 'node:test';
 
 import type { NextFunction, Request, Response } from 'express';
-import { bookingTokenParamsSchema, shareTokenParamsSchema } from '@session-scheduler/shared';
+import { bookingTokenParamsSchema, shareTokenParamsSchema } from '@calendar-genie/shared';
 
 import { publicWriteRateLimiter } from '../middleware/rateLimit.js';
 import {

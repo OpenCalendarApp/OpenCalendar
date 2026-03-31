@@ -1,4 +1,4 @@
-# CalendarGenie (Session Scheduler)
+# Calendar Genie
 
 Multi-tenant session scheduling platform with a React/Vite frontend, Express API, PostgreSQL, and Microsoft Calendar integration.
 
@@ -17,7 +17,7 @@ Multi-tenant session scheduling platform with a React/Vite frontend, Express API
 - Frontend: React 18 + Vite + TypeScript
 - Backend: Express + TypeScript
 - Database: PostgreSQL 16
-- Shared contracts: `@session-scheduler/shared`
+- Shared contracts: `@calendar-genie/shared`
 - Infra: Docker Compose (postgres + optional full stack)
 
 ## Monorepo Layout
@@ -208,4 +208,4 @@ Auto bump rules:
 
 ## Status
 
-CalendarGenie is under active development. The repository currently includes a full local development workflow, Docker-backed infrastructure, and production-oriented scheduling capabilities listed above.
+Calendar Genie is under active development. The repository currently includes a full local development workflow, Docker-backed infrastructure, and production-oriented scheduling capabilities listed above.

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type { AdminOverviewResponse, AdminOverviewStats } from '@session-scheduler/shared';
+import type { AdminOverviewResponse, AdminOverviewStats } from '@calendar-genie/shared';
 
 import { apiFetch } from '../api/client.js';
 

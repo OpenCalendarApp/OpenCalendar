@@ -16,7 +16,29 @@ dataRetentionScheduler.start();
 
 const port = Number(process.env.PORT ?? 4000);
 
-const server = app.listen(port, () => {
+async function handleStartupError(error: NodeJS.ErrnoException): Promise<never> {
+  jobQueue.stop();
+  await dataRetentionScheduler.stop();
+  await pool.end().catch(() => undefined);
+
+  if (error.code === 'EADDRINUSE') {
+    console.error(
+      `Port ${port} is already in use. Stop the existing process or restart Calendar Genie with PORT set to a different value.`
+    );
+  } else {
+    console.error('Server failed to start.', error);
+  }
+
+  process.exit(1);
+}
+
+const server = app.listen(port);
+
+server.once('error', (error) => {
+  void handleStartupError(error as NodeJS.ErrnoException);
+});
+
+server.once('listening', () => {
   console.log(`Server listening on port ${port}`);
 });
 

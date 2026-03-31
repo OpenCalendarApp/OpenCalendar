@@ -6,7 +6,7 @@ const allowedScenarios = new Set(['read-project', 'book-contention']);
 
 function printUsage() {
   console.log(`
-Session Scheduler Load Test Runner
+Calendar Genie Load Test Runner
 
 Usage:
   node scripts/load-test.mjs <scenario>
