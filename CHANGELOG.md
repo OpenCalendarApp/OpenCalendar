@@ -18,12 +18,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Microsoft Calendar integration job handlers and utility support.
 - Backup/restore scripts for local Dockerized PostgreSQL (`scripts/db-backup.sh`, `scripts/db-restore.sh`).
 - Built-in load testing script and documentation (`scripts/load-test.mjs`, `docs/LOAD_TESTING.md`).
+- Time block editing support across the API, shared validation schemas, and project detail UI, including signed-up client visibility and engineer/max-signup updates.
+- Brand logo component and bundled Calendar Genie SVG assets for horizontal, stacked, and icon treatments in the client.
 
 ### Changed
 - API routing supports both legacy (`/api/*`) and versioned (`/api/v1/*`) routes.
 - Booking and project flows expanded for idempotency, email-domain restrictions, recurring time blocks, and observability coverage.
 - README and architecture/docs updated to reflect Epic 11 platform capabilities and operational workflows.
+- Project naming, package references, local database defaults, and load-testing labels were renamed from Session Scheduler to Calendar Genie across the repo.
+- README messaging was refreshed to better describe the product and highlight core platform features.
 
 ### Fixed
 - Version bump script output no longer emits noisy git tag errors when no tags are present.
-
