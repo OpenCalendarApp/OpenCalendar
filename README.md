@@ -38,6 +38,7 @@ Important defaults:
 
 Full variable reference (defaults, required/conditional usage, behavior notes):
 - [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md)
+- Change log and release notes: [`CHANGELOG.md`](CHANGELOG.md)
 
 ## Local Development
 
