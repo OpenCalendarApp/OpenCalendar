@@ -1,6 +1,6 @@
 {
   "name": "session-scheduler",
-  "version": "0.1.0",
+  "version": "2026.03.30",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -18,6 +18,10 @@
     "format": "prettier --write .",
     "db:migrate": "npm run db:migrate -w @session-scheduler/server",
     "db:seed": "npm run db:seed -w @session-scheduler/server",
+    "db:backup": "bash scripts/db-backup.sh",
+    "db:restore": "bash scripts/db-restore.sh",
+    "loadtest:read": "node scripts/load-test.mjs read-project",
+    "loadtest:book": "node scripts/load-test.mjs book-contention",
     "docker:up": "docker compose up postgres -d",
     "docker:down": "docker compose down",
     "docker:prod:validate": "docker compose config && docker compose build && docker compose up -d && docker compose ps && docker compose down"

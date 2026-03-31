@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { PoolClient } from 'pg';
 
 import {
+  createRecurringTimeBlocksSchema,
   createTimeBlockSchema,
   createTimeBlocksBatchSchema,
   numericIdParamsSchema,
@@ -13,6 +14,8 @@ import {
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
+import { recordAuditEventSafe } from '../utils/audit.js';
+import { buildWeeklyRecurringWindows } from '../utils/recurrence.js';
 
 const router = Router();
 
@@ -36,7 +39,11 @@ function validateMaxSignups(project: ProjectCapacityRow, maxSignups: number): st
   return null;
 }
 
-async function fetchProjectCapacity(projectId: number, client?: PoolClient): Promise<ProjectCapacityRow | null> {
+async function fetchProjectCapacity(
+  projectId: number,
+  tenantId: number,
+  client?: PoolClient
+): Promise<ProjectCapacityRow | null> {
   const db = client ?? pool;
 
   const result = await db.query<ProjectCapacityRow>(
@@ -44,14 +51,19 @@ async function fetchProjectCapacity(projectId: number, client?: PoolClient): Pro
     SELECT id, is_group_signup, max_group_size
     FROM projects
     WHERE id = $1
+      AND tenant_id = $2
     `,
-    [projectId]
+    [projectId, tenantId]
   );
 
   return result.rows[0] ?? null;
 }
 
-async function validateEngineerIds(engineerIds: number[], client?: PoolClient): Promise<number[]> {
+async function validateEngineerIds(
+  engineerIds: number[],
+  tenantId: number,
+  client?: PoolClient
+): Promise<number[]> {
   if (engineerIds.length === 0) {
     return [];
   }
@@ -64,8 +76,9 @@ async function validateEngineerIds(engineerIds: number[], client?: PoolClient): 
     FROM users
     WHERE role = 'engineer'
       AND id = ANY($1::int[])
+      AND tenant_id = $2
     `,
-    [engineerIds]
+    [engineerIds, tenantId]
   );
 
   const foundIds = new Set(result.rows.map((row) => row.id));
@@ -81,6 +94,7 @@ async function createTimeBlockRow(
     max_signups: number;
     is_personal: boolean;
     created_by: number;
+    tenant_id: number;
   }
 ): Promise<TimeBlock> {
   const result = await client.query<TimeBlock>(
@@ -91,9 +105,10 @@ async function createTimeBlockRow(
       end_time,
       max_signups,
       is_personal,
-      created_by
+      created_by,
+      tenant_id
     )
-    VALUES ($1, $2, $3, $4, $5, $6)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING id, project_id, start_time, end_time, max_signups, is_personal, created_by, created_at
     `,
     [
@@ -102,7 +117,8 @@ async function createTimeBlockRow(
       args.end_time,
       args.max_signups,
       args.is_personal,
-      args.created_by
+      args.created_by,
+      args.tenant_id
     ]
   );
 
@@ -145,7 +161,7 @@ router.post('/', authMiddleware, asyncHandler(async (req, res) => {
 
   const data = parse.data;
 
-  const project = await fetchProjectCapacity(data.project_id);
+  const project = await fetchProjectCapacity(data.project_id, req.user.tenantId);
   if (!project) {
     res.status(404).json({ error: 'Project not found' });
     return;
@@ -161,7 +177,7 @@ router.post('/', authMiddleware, asyncHandler(async (req, res) => {
   const isPersonal = isEngineer;
   const engineerIds = isEngineer ? [req.user.userId] : data.engineer_ids;
 
-  const missingEngineerIds = await validateEngineerIds(engineerIds);
+  const missingEngineerIds = await validateEngineerIds(engineerIds, req.user.tenantId);
   if (missingEngineerIds.length > 0) {
     res.status(400).json({
       error: 'Validation failed',
@@ -180,10 +196,25 @@ router.post('/', authMiddleware, asyncHandler(async (req, res) => {
       end_time: data.end_time,
       max_signups: data.max_signups,
       is_personal: isPersonal,
-      created_by: req.user.userId
+      created_by: req.user.userId,
+      tenant_id: req.user.tenantId
     });
 
     await assignEngineersToBlock(client, timeBlock.id, engineerIds);
+    await recordAuditEventSafe({
+      tenantId: req.user.tenantId,
+      actorUserId: req.user.userId,
+      actorRole: req.user.role,
+      action: isPersonal ? 'time_block.personal_created' : 'time_block.created',
+      entityType: 'time_block',
+      entityId: timeBlock.id,
+      metadata: {
+        project_id: data.project_id,
+        max_signups: data.max_signups,
+        engineer_ids: engineerIds
+      },
+      db: client
+    });
 
     await client.query('COMMIT');
 
@@ -197,7 +228,7 @@ router.post('/', authMiddleware, asyncHandler(async (req, res) => {
   }
 }));
 
-router.post('/batch', authMiddleware, requireRole(['pm']), asyncHandler(async (req, res) => {
+router.post('/batch', authMiddleware, requireRole(['pm', 'admin']), asyncHandler(async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: 'Missing authenticated user' });
     return;
@@ -211,7 +242,7 @@ router.post('/batch', authMiddleware, requireRole(['pm']), asyncHandler(async (r
 
   const data = parse.data;
 
-  const project = await fetchProjectCapacity(data.project_id);
+  const project = await fetchProjectCapacity(data.project_id, req.user.tenantId);
   if (!project) {
     res.status(404).json({ error: 'Project not found' });
     return;
@@ -226,7 +257,7 @@ router.post('/batch', authMiddleware, requireRole(['pm']), asyncHandler(async (r
   }
 
   const uniqueEngineerIds = Array.from(new Set(data.blocks.flatMap((block) => block.engineer_ids)));
-  const missingEngineerIds = await validateEngineerIds(uniqueEngineerIds);
+  const missingEngineerIds = await validateEngineerIds(uniqueEngineerIds, req.user.tenantId);
   if (missingEngineerIds.length > 0) {
     res.status(400).json({
       error: 'Validation failed',
@@ -248,12 +279,26 @@ router.post('/batch', authMiddleware, requireRole(['pm']), asyncHandler(async (r
         end_time: block.end_time,
         max_signups: block.max_signups,
         is_personal: false,
-        created_by: req.user.userId
+        created_by: req.user.userId,
+        tenant_id: req.user.tenantId
       });
 
       await assignEngineersToBlock(client, createdBlock.id, block.engineer_ids);
       createdBlocks.push(createdBlock);
     }
+
+    await recordAuditEventSafe({
+      tenantId: req.user.tenantId,
+      actorUserId: req.user.userId,
+      actorRole: req.user.role,
+      action: 'time_block.batch_created',
+      entityType: 'project',
+      entityId: data.project_id,
+      metadata: {
+        created_count: createdBlocks.length
+      },
+      db: client
+    });
 
     await client.query('COMMIT');
 
@@ -262,6 +307,96 @@ router.post('/batch', authMiddleware, requireRole(['pm']), asyncHandler(async (r
   } catch {
     await client.query('ROLLBACK');
     res.status(500).json({ error: 'Unable to create time blocks' });
+  } finally {
+    client.release();
+  }
+}));
+
+router.post('/recurring', authMiddleware, requireRole(['pm', 'admin']), asyncHandler(async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
+  const parse = createRecurringTimeBlocksSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'Validation failed', details: parse.error.flatten() });
+    return;
+  }
+
+  const data = parse.data;
+
+  const project = await fetchProjectCapacity(data.project_id, req.user.tenantId);
+  if (!project) {
+    res.status(404).json({ error: 'Project not found' });
+    return;
+  }
+
+  const maxSignupsValidation = validateMaxSignups(project, data.max_signups);
+  if (maxSignupsValidation) {
+    res.status(400).json({ error: 'Validation failed', details: maxSignupsValidation });
+    return;
+  }
+
+  const missingEngineerIds = await validateEngineerIds(data.engineer_ids, req.user.tenantId);
+  if (missingEngineerIds.length > 0) {
+    res.status(400).json({
+      error: 'Validation failed',
+      details: `Unknown engineer ids: ${missingEngineerIds.join(', ')}`
+    });
+    return;
+  }
+
+  const windows = buildWeeklyRecurringWindows({
+    startTimeIso: data.start_time,
+    endTimeIso: data.end_time,
+    intervalWeeks: data.recurrence.interval_weeks,
+    occurrences: data.recurrence.occurrences,
+    slotsPerOccurrence: data.slots_per_occurrence
+  });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const createdBlocks: TimeBlock[] = [];
+    for (const window of windows) {
+      const createdBlock = await createTimeBlockRow(client, {
+        project_id: data.project_id,
+        start_time: window.start_time,
+        end_time: window.end_time,
+        max_signups: data.max_signups,
+        is_personal: false,
+        created_by: req.user.userId,
+        tenant_id: req.user.tenantId
+      });
+
+      await assignEngineersToBlock(client, createdBlock.id, data.engineer_ids);
+      createdBlocks.push(createdBlock);
+    }
+
+    await recordAuditEventSafe({
+      tenantId: req.user.tenantId,
+      actorUserId: req.user.userId,
+      actorRole: req.user.role,
+      action: 'time_block.recurring_created',
+      entityType: 'project',
+      entityId: data.project_id,
+      metadata: {
+        created_count: createdBlocks.length,
+        recurrence: data.recurrence,
+        slots_per_occurrence: data.slots_per_occurrence
+      },
+      db: client
+    });
+
+    await client.query('COMMIT');
+
+    const response: TimeBlocksResponse = { time_blocks: createdBlocks };
+    res.status(201).json(response);
+  } catch {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Unable to create recurring time blocks' });
   } finally {
     client.release();
   }
@@ -291,9 +426,10 @@ router.delete('/:id', authMiddleware, asyncHandler(async (req, res) => {
     FROM time_blocks tb
     LEFT JOIN bookings b ON b.time_block_id = tb.id
     WHERE tb.id = $1
+      AND tb.tenant_id = $2
     GROUP BY tb.id
     `,
-    [timeBlockId]
+    [timeBlockId, req.user.tenantId]
   );
 
   const timeBlock = blockResult.rows[0];
@@ -322,9 +458,22 @@ router.delete('/:id', authMiddleware, asyncHandler(async (req, res) => {
     `
     DELETE FROM time_blocks
     WHERE id = $1
+      AND tenant_id = $2
     `,
-    [timeBlockId]
+    [timeBlockId, req.user.tenantId]
   );
+
+  await recordAuditEventSafe({
+    tenantId: req.user.tenantId,
+    actorUserId: req.user.userId,
+    actorRole: req.user.role,
+    action: 'time_block.deleted',
+    entityType: 'time_block',
+    entityId: timeBlockId,
+    metadata: {
+      is_personal: timeBlock.is_personal
+    }
+  });
 
   res.status(204).send();
 }));

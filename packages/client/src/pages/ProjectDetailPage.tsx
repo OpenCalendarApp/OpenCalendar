@@ -12,12 +12,16 @@ import type {
 import { apiFetch } from '../api/client.js';
 import { AddTimeBlockModal } from '../components/AddTimeBlockModal.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
+import { TimeZoneSelect } from '../components/TimeZoneSelect.js';
 import { useAuth } from '../context/AuthContext.js';
+import { useTimezone } from '../context/TimezoneContext.js';
 import { useToast } from '../context/ToastContext.js';
+import { formatDateTimeInTimeZone } from '../utils/timezone.js';
 
 interface ProjectFormState {
   name: string;
   description: string;
+  bookingEmailDomainAllowlist: string;
   sessionLengthMinutes: number;
   isGroupSignup: boolean;
   maxGroupSize: number;
@@ -33,6 +37,7 @@ function toFormState(project: ProjectDetail): ProjectFormState {
   return {
     name: project.name,
     description: project.description,
+    bookingEmailDomainAllowlist: project.booking_email_domain_allowlist ?? '',
     sessionLengthMinutes: project.session_length_minutes,
     isGroupSignup: project.is_group_signup,
     maxGroupSize: project.max_group_size,
@@ -45,6 +50,7 @@ export function ProjectDetailPage(): JSX.Element {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { timeZone } = useTimezone();
   const { showToast } = useToast();
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
@@ -58,9 +64,11 @@ export function ProjectDetailPage(): JSX.Element {
   const [isAddTimeBlockModalOpen, setIsAddTimeBlockModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
-  const isPm = user?.role === 'pm';
+  const isPm = user?.role === 'pm' || user?.role === 'admin';
 
-  const canCreateBlocks = Boolean(user && (user.role === 'pm' || user.role === 'engineer'));
+  const canCreateBlocks = Boolean(
+    user && (user.role === 'pm' || user.role === 'admin' || user.role === 'engineer')
+  );
 
   const loadProject = useCallback(async () => {
     if (!id) {
@@ -100,7 +108,7 @@ export function ProjectDetailPage(): JSX.Element {
       return false;
     }
 
-    if (user.role === 'pm') {
+    if (user.role === 'pm' || user.role === 'admin') {
       return true;
     }
 
@@ -134,6 +142,10 @@ export function ProjectDetailPage(): JSX.Element {
     const payload: UpdateProjectRequest = {
       name: form.name.trim(),
       description: form.description.trim(),
+      booking_email_domain_allowlist:
+        form.bookingEmailDomainAllowlist.trim().length > 0
+          ? form.bookingEmailDomainAllowlist.trim().toLowerCase()
+          : null,
       session_length_minutes: form.sessionLengthMinutes,
       is_group_signup: form.isGroupSignup,
       max_group_size: form.isGroupSignup ? form.maxGroupSize : 1,
@@ -252,6 +264,10 @@ export function ProjectDetailPage(): JSX.Element {
       <div className="detail-card">
         <h3>Booking Link</h3>
         <p className="mono-text">{shareUrl}</p>
+        <p className="hint">
+          Allowed booking email domain:{' '}
+          {project.booking_email_domain_allowlist ?? 'Any domain'}
+        </p>
         <button type="button" onClick={() => void handleCopyShareLink()}>
           Copy Link
         </button>
@@ -282,6 +298,19 @@ export function ProjectDetailPage(): JSX.Element {
               }
               maxLength={5000}
               rows={4}
+            />
+          </label>
+
+          <label>
+            Booking Email Domain Allowlist (optional)
+            <input
+              value={form.bookingEmailDomainAllowlist}
+              onChange={(event) =>
+                setForm((prev) => (prev ? { ...prev, bookingEmailDomainAllowlist: event.target.value } : prev))
+              }
+              type="text"
+              maxLength={255}
+              placeholder="client.com"
             />
           </label>
 
@@ -377,7 +406,10 @@ export function ProjectDetailPage(): JSX.Element {
 
       <div className="detail-card">
         <div className="header-row">
-          <h3>Time Blocks</h3>
+          <div>
+            <h3>Time Blocks</h3>
+            <p className="hint">Displayed in {timeZone}</p>
+          </div>
           {canCreateBlocks ? (
             <button
               type="button"
@@ -388,6 +420,7 @@ export function ProjectDetailPage(): JSX.Element {
             </button>
           ) : null}
         </div>
+        <TimeZoneSelect label="Display Timezone" />
 
         {error ? <p className="error">{error}</p> : null}
 
@@ -411,8 +444,8 @@ export function ProjectDetailPage(): JSX.Element {
 
                 return (
                   <tr key={block.id}>
-                    <td>{new Date(block.start_time).toLocaleString()}</td>
-                    <td>{new Date(block.end_time).toLocaleString()}</td>
+                    <td>{formatDateTimeInTimeZone(block.start_time, timeZone)}</td>
+                    <td>{formatDateTimeInTimeZone(block.end_time, timeZone)}</td>
                     <td>
                       {block.engineers.length > 0
                         ? block.engineers

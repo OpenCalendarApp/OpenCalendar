@@ -4,13 +4,22 @@ import type { ReactNode } from 'react';
 import type {
   AuthResponse,
   LoginRequest,
+  LogoutRequest,
   MeResponse,
+  RefreshTokenRequest,
   RegisterRequest,
   User
 } from '@session-scheduler/shared';
 
 import { apiFetch } from '../api/client.js';
-import { clearStoredToken, getStoredToken, setStoredToken } from '../auth/storage.js';
+import {
+  clearStoredRefreshToken,
+  clearStoredToken,
+  getStoredRefreshToken,
+  getStoredToken,
+  setStoredRefreshToken,
+  setStoredToken
+} from '../auth/storage.js';
 
 interface AuthContextValue {
   token: string | null;
@@ -18,6 +27,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isBootstrapping: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
+  completeSsoLogin: (tokens: { token: string; refresh_token: string }) => Promise<void>;
   register: (payload: RegisterRequest) => Promise<void>;
   logout: () => void;
   refreshSession: () => Promise<void>;
@@ -30,27 +40,73 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [user, setUser] = useState<User | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
-  const logout = useCallback(() => {
+  const clearAuthState = useCallback(() => {
     clearStoredToken();
+    clearStoredRefreshToken();
     setToken(null);
     setUser(null);
   }, []);
 
+  const logout = useCallback(() => {
+    const refreshToken = getStoredRefreshToken();
+    if (token) {
+      const payload: LogoutRequest = refreshToken ? { refresh_token: refreshToken } : {};
+      void apiFetch<unknown>('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      }).catch(() => undefined);
+    }
+
+    clearAuthState();
+  }, [clearAuthState, token]);
+
   const applyAuthResponse = useCallback((response: AuthResponse) => {
     setStoredToken(response.token);
+    setStoredRefreshToken(response.refresh_token);
     setToken(response.token);
     setUser(response.user);
   }, []);
 
+  const refreshWithStoredToken = useCallback(async (): Promise<boolean> => {
+    const refreshToken = getStoredRefreshToken();
+    if (!refreshToken) {
+      return false;
+    }
+
+    try {
+      const payload: RefreshTokenRequest = { refresh_token: refreshToken };
+      const response = await apiFetch<AuthResponse>('/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      applyAuthResponse(response);
+      return true;
+    } catch {
+      clearAuthState();
+      return false;
+    }
+  }, [applyAuthResponse, clearAuthState]);
+
   const refreshSession = useCallback(async () => {
-    if (!token) {
+    if (!token && !(await refreshWithStoredToken())) {
       setUser(null);
       return;
     }
 
-    const response = await apiFetch<MeResponse>('/auth/me');
-    setUser(response.user);
-  }, [token]);
+    try {
+      const response = await apiFetch<MeResponse>('/auth/me');
+      setUser(response.user);
+      return;
+    } catch {
+      if (!(await refreshWithStoredToken())) {
+        clearAuthState();
+        return;
+      }
+    }
+
+    const retriedResponse = await apiFetch<MeResponse>('/auth/me');
+    setUser(retriedResponse.user);
+  }, [clearAuthState, refreshWithStoredToken, token]);
 
   useEffect(() => {
     let isMounted = true;
@@ -58,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     async function bootstrapSession(): Promise<void> {
       setIsBootstrapping(true);
 
-      if (!token) {
+      if (!token && !getStoredRefreshToken()) {
         if (isMounted) {
           setUser(null);
           setIsBootstrapping(false);
@@ -67,13 +123,10 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       }
 
       try {
-        const response = await apiFetch<MeResponse>('/auth/me');
-        if (isMounted) {
-          setUser(response.user);
-        }
+        await refreshSession();
       } catch {
         if (isMounted) {
-          logout();
+          clearAuthState();
         }
       } finally {
         if (isMounted) {
@@ -87,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     return () => {
       isMounted = false;
     };
-  }, [logout, token]);
+  }, [clearAuthState, refreshSession, token]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -103,6 +156,19 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
 
         applyAuthResponse(response);
       },
+      async completeSsoLogin(tokens: { token: string; refresh_token: string }) {
+        setStoredToken(tokens.token);
+        setStoredRefreshToken(tokens.refresh_token);
+        setToken(tokens.token);
+
+        try {
+          const response = await apiFetch<MeResponse>('/auth/me');
+          setUser(response.user);
+        } catch {
+          clearAuthState();
+          throw new Error('Unable to complete SSO login');
+        }
+      },
       async register(payload: RegisterRequest) {
         const response = await apiFetch<AuthResponse>('/auth/register', {
           method: 'POST',
@@ -114,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       logout,
       refreshSession
     }),
-    [applyAuthResponse, isBootstrapping, logout, refreshSession, token, user]
+    [applyAuthResponse, clearAuthState, isBootstrapping, logout, refreshSession, token, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

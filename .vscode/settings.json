@@ -1,0 +1,21 @@
+{
+    "sqltools.connections": [
+        {
+            "pgOptions": {
+                "ssl": {
+                    "rejectUnauthorized": true
+                }
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "devtestwestus3sql.postgres.database.azure.com",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "CalendarGenie",
+            "group": "Azure",
+            "database": "mailgeniedb",
+            "username": "mailgenie_admin",
+            "password": "a;lkds;c894al;kdjjf048aksdlfl;k4"
+        }
+    ]
+}

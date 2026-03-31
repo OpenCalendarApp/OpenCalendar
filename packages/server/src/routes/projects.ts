@@ -18,6 +18,8 @@ import { pool } from '../db/pool.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { hashProjectPassword } from '../utils/auth.js';
+import { recordAuditEventSafe } from '../utils/audit.js';
+import { normalizeProjectEmailDomainAllowlist } from '../utils/emailDomain.js';
 
 const router = Router();
 
@@ -25,13 +27,19 @@ type ProjectDetailRow = Omit<ProjectDetail, 'time_blocks'>;
 type TimeBlockRow = Omit<TimeBlockWithRelations, 'engineers' | 'bookings'>;
 type EngineerAssignmentRow = EngineerSummary & { time_block_id: number };
 
-router.get('/', authMiddleware, asyncHandler(async (_req, res) => {
+router.get('/', authMiddleware, asyncHandler(async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
   const result = await pool.query<ProjectSummary>(
     `
     SELECT
       p.id,
       p.name,
       p.description,
+      p.booking_email_domain_allowlist,
       p.created_by,
       p.is_group_signup,
       p.max_group_size,
@@ -45,9 +53,11 @@ router.get('/', authMiddleware, asyncHandler(async (_req, res) => {
     FROM projects p
     LEFT JOIN time_blocks tb ON tb.project_id = p.id
     LEFT JOIN bookings b ON b.time_block_id = tb.id
+    WHERE p.tenant_id = $1
     GROUP BY p.id
     ORDER BY p.created_at DESC
-    `
+    `,
+    [req.user.tenantId]
   );
 
   const response: ProjectsResponse = { projects: result.rows };
@@ -55,6 +65,11 @@ router.get('/', authMiddleware, asyncHandler(async (_req, res) => {
 }));
 
 router.get('/:id', authMiddleware, asyncHandler(async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
   const paramsParse = numericIdParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid project id', details: paramsParse.error.flatten() });
@@ -69,6 +84,7 @@ router.get('/:id', authMiddleware, asyncHandler(async (req, res) => {
       p.id,
       p.name,
       p.description,
+      p.booking_email_domain_allowlist,
       p.created_by,
       p.is_group_signup,
       p.max_group_size,
@@ -81,8 +97,9 @@ router.get('/:id', authMiddleware, asyncHandler(async (req, res) => {
     FROM projects p
     INNER JOIN users u ON u.id = p.created_by
     WHERE p.id = $1
+      AND p.tenant_id = $2
     `,
-    [projectId]
+    [projectId, req.user.tenantId]
   );
 
   const projectRow = projectResult.rows[0];
@@ -108,10 +125,11 @@ router.get('/:id', authMiddleware, asyncHandler(async (req, res) => {
     FROM time_blocks tb
     LEFT JOIN bookings b ON b.time_block_id = tb.id
     WHERE tb.project_id = $1
+      AND tb.tenant_id = $2
     GROUP BY tb.id
     ORDER BY tb.start_time ASC
     `,
-    [projectId]
+    [projectId, req.user.tenantId]
   );
 
   const blockIds = timeBlocksResult.rows.map((block) => block.id);
@@ -131,9 +149,10 @@ router.get('/:id', authMiddleware, asyncHandler(async (req, res) => {
       FROM time_block_engineers tbe
       INNER JOIN users u ON u.id = tbe.engineer_id
       WHERE tbe.time_block_id = ANY($1::int[])
+        AND u.tenant_id = $2
       ORDER BY u.first_name ASC, u.last_name ASC
       `,
-      [blockIds]
+      [blockIds, req.user.tenantId]
     );
 
     for (const assignment of engineersResult.rows) {
@@ -161,9 +180,10 @@ router.get('/:id', authMiddleware, asyncHandler(async (req, res) => {
         cancelled_at
       FROM bookings
       WHERE time_block_id = ANY($1::int[])
+        AND tenant_id = $2
       ORDER BY booked_at DESC
       `,
-      [blockIds]
+      [blockIds, req.user.tenantId]
     );
 
     for (const booking of bookingsResult.rows) {
@@ -187,7 +207,7 @@ router.get('/:id', authMiddleware, asyncHandler(async (req, res) => {
   res.json({ project });
 }));
 
-router.post('/', authMiddleware, requireRole(['pm']), asyncHandler(async (req, res) => {
+router.post('/', authMiddleware, requireRole(['pm', 'admin']), asyncHandler(async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: 'Missing authenticated user' });
     return;
@@ -201,25 +221,30 @@ router.post('/', authMiddleware, requireRole(['pm']), asyncHandler(async (req, r
 
   const data = parse.data;
   const hashedPassword = await hashProjectPassword(data.signup_password);
+  const bookingEmailDomainAllowlist = normalizeProjectEmailDomainAllowlist(data.booking_email_domain_allowlist);
 
   const result = await pool.query<Project>(
     `
     INSERT INTO projects (
       name,
       description,
+      booking_email_domain_allowlist,
+      tenant_id,
       created_by,
       signup_password_hash,
       is_group_signup,
       max_group_size,
       session_length_minutes
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING id, name, description, created_by, is_group_signup, max_group_size,
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING id, name, description, booking_email_domain_allowlist, created_by, is_group_signup, max_group_size,
               session_length_minutes, share_token, is_active, created_at, updated_at
     `,
     [
       data.name,
       data.description,
+      bookingEmailDomainAllowlist,
+      req.user.tenantId,
       req.user.userId,
       hashedPassword,
       data.is_group_signup,
@@ -235,10 +260,28 @@ router.post('/', authMiddleware, requireRole(['pm']), asyncHandler(async (req, r
   }
 
   const response: ProjectResponse = { project };
+  await recordAuditEventSafe({
+    tenantId: req.user.tenantId,
+    actorUserId: req.user.userId,
+    actorRole: req.user.role,
+    action: 'project.created',
+    entityType: 'project',
+    entityId: project.id,
+    metadata: {
+      name: project.name,
+      is_group_signup: project.is_group_signup,
+      max_group_size: project.max_group_size
+    }
+  });
   res.status(201).json(response);
 }));
 
-router.put('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (req, res) => {
+router.put('/:id', authMiddleware, requireRole(['pm', 'admin']), asyncHandler(async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
   const paramsParse = numericIdParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid project id', details: paramsParse.error.flatten() });
@@ -259,8 +302,9 @@ router.put('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (req,
     SELECT id, is_group_signup, max_group_size
     FROM projects
     WHERE id = $1
+      AND tenant_id = $2
     `,
-    [projectId]
+    [projectId, req.user.tenantId]
   );
 
   const existingProject = existingResult.rows[0];
@@ -285,6 +329,10 @@ router.put('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (req,
   const signupPasswordHash = data.signup_password
     ? await hashProjectPassword(data.signup_password)
     : null;
+  const hasDomainAllowlistUpdate = Object.prototype.hasOwnProperty.call(data, 'booking_email_domain_allowlist');
+  const normalizedDomainAllowlist = hasDomainAllowlistUpdate
+    ? normalizeProjectEmailDomainAllowlist(data.booking_email_domain_allowlist ?? null)
+    : null;
 
   const result = await pool.query<Project>(
     `
@@ -296,9 +344,11 @@ router.put('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (req,
       is_group_signup = COALESCE($4, is_group_signup),
       max_group_size = COALESCE($5, max_group_size),
       session_length_minutes = COALESCE($6, session_length_minutes),
-      is_active = COALESCE($7, is_active)
-    WHERE id = $8
-    RETURNING id, name, description, created_by, is_group_signup, max_group_size,
+      is_active = COALESCE($7, is_active),
+      booking_email_domain_allowlist = CASE WHEN $8 THEN $9 ELSE booking_email_domain_allowlist END
+    WHERE id = $10
+      AND tenant_id = $11
+    RETURNING id, name, description, booking_email_domain_allowlist, created_by, is_group_signup, max_group_size,
               session_length_minutes, share_token, is_active, created_at, updated_at
     `,
     [
@@ -309,7 +359,10 @@ router.put('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (req,
       data.max_group_size ?? null,
       data.session_length_minutes ?? null,
       data.is_active ?? null,
-      projectId
+      hasDomainAllowlistUpdate,
+      normalizedDomainAllowlist,
+      projectId,
+      req.user.tenantId
     ]
   );
 
@@ -320,10 +373,27 @@ router.put('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (req,
   }
 
   const response: ProjectResponse = { project };
+  await recordAuditEventSafe({
+    tenantId: req.user.tenantId,
+    actorUserId: req.user.userId,
+    actorRole: req.user.role,
+    action: 'project.updated',
+    entityType: 'project',
+    entityId: project.id,
+    metadata: {
+      name: project.name,
+      is_active: project.is_active
+    }
+  });
   res.json(response);
 }));
 
-router.delete('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (req, res) => {
+router.delete('/:id', authMiddleware, requireRole(['pm', 'admin']), asyncHandler(async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
   const paramsParse = numericIdParamsSchema.safeParse(req.params);
   if (!paramsParse.success) {
     res.status(400).json({ error: 'Invalid project id', details: paramsParse.error.flatten() });
@@ -336,15 +406,26 @@ router.delete('/:id', authMiddleware, requireRole(['pm']), asyncHandler(async (r
     `
     DELETE FROM projects
     WHERE id = $1
+      AND tenant_id = $2
     RETURNING id
     `,
-    [projectId]
+    [projectId, req.user.tenantId]
   );
 
   if (!result.rows[0]) {
     res.status(404).json({ error: 'Project not found' });
     return;
   }
+
+  await recordAuditEventSafe({
+    tenantId: req.user.tenantId,
+    actorUserId: req.user.userId,
+    actorRole: req.user.role,
+    action: 'project.deleted',
+    entityType: 'project',
+    entityId: projectId,
+    metadata: null
+  });
 
   res.status(204).send();
 }));

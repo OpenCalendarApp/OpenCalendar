@@ -57,30 +57,35 @@ Session Scheduler is an internal scheduling platform that allows Project Manager
 
 | Role | Description | Authentication |
 |------|------------|----------------|
+| **Admin** | Platform administrator with access to admin pages, user management, and global configuration controls | JWT — email/password login |
 | **Project Manager (PM)** | Creates projects, defines time blocks, assigns engineers, manages all scheduling | JWT — email/password login |
 | **Engineer** | Assigned to time blocks by PMs, can create personal time blocks | JWT — email/password login |
 | **Client** | External user who books sessions via a shared link | Project-specific password (no account required) |
 
 ### Permission Matrix
 
-| Action | PM | Engineer | Client |
-|--------|:--:|:--------:|:------:|
-| Create project | ✅ | ❌ | ❌ |
-| Edit/delete project | ✅ | ❌ | ❌ |
-| Create time blocks (batch) | ✅ | ❌ | ❌ |
-| Create personal time blocks | ❌ | ✅ | ❌ |
-| Assign engineers to blocks | ✅ | ❌ | ❌ |
-| Delete time blocks | ✅ | Own only | ❌ |
-| View all projects & bookings | ✅ | ✅ | ❌ |
-| Book a session | ❌ | ❌ | ✅ |
-| Reschedule booking | ❌ | ❌ | ✅ |
-| Cancel booking | ❌ | ❌ | ✅ |
-| Download .ics calendar | ❌ | ❌ | ✅ |
-| View client booking link | ✅ | ✅ | N/A |
+| Action | Admin | PM | Engineer | Client |
+|--------|:-----:|:--:|:--------:|:------:|
+| Access admin pages (`/admin/*`) | ✅ | ❌ | ❌ | ❌ |
+| Manage users and roles | ✅ | ❌ | ❌ | ❌ |
+| Create project | ✅ | ✅ | ❌ | ❌ |
+| Edit/delete project | ✅ | ✅ | ❌ | ❌ |
+| Create time blocks (batch) | ✅ | ✅ | ❌ | ❌ |
+| Create personal time blocks | ✅ | ❌ | ✅ | ❌ |
+| Assign engineers to blocks | ✅ | ✅ | ❌ | ❌ |
+| Delete time blocks | ✅ | ✅ | Own only | ❌ |
+| View all projects & bookings | ✅ | ✅ | ✅ | ❌ |
+| Book a session | ❌ | ❌ | ❌ | ✅ |
+| Reschedule booking | ❌ | ❌ | ❌ | ✅ |
+| Cancel booking | ❌ | ❌ | ❌ | ✅ |
+| Download .ics calendar | ❌ | ❌ | ❌ | ✅ |
+| View client booking link | ✅ | ✅ | ✅ | N/A |
 
 ### Key Rules
 
-- Engineers cannot create projects or assign other engineers — that's PM-only
+- Engineers cannot create projects or assign other engineers — those actions are PM/Admin-only
+- Admins can access `/admin/*` pages and manage users/roles; this capability is never exposed to public booking routes
+- Admin accounts are provisioned internally (seed/manual/admin action), not via open self-registration
 - Engineers CAN create personal time blocks scoped to themselves (marked `is_personal = true`)
 - Deleting a time block with active (non-cancelled) bookings is prohibited — cancellation must happen first
 - Clients never create accounts; they authenticate per-project using a shared password
@@ -166,6 +171,19 @@ Two variants are generated per booking:
 
 Both are standard `.ics` (RFC 5545) files downloadable on any platform.
 
+### 3.6 Admin: Platform Operations Flow
+
+```
+Admin logs in
+  → Visit /admin (overview page)
+     → View platform stats (users, active projects, booking volume)
+  → Visit /admin/users
+     → Search/filter users
+     → Update role (pm/engineer/admin) with confirmation
+     → Activate/deactivate accounts (soft disable)
+  → Audit recent privileged actions from admin activity feed
+```
+
 ---
 
 ## 4. System Architecture
@@ -222,6 +240,7 @@ session-scheduler/
 │   │       │   └── auth.ts      # JWT + RBAC middleware
 │   │       ├── routes/
 │   │       │   ├── auth.ts      # Login, register, profile
+│   │       │   ├── admin.ts      # Admin-only user and platform management
 │   │       │   ├── projects.ts  # CRUD projects
 │   │       │   ├── timeBlocks.ts# Create, batch, delete blocks
 │   │       │   └── booking.ts   # Public booking, reschedule, .ics
@@ -242,12 +261,15 @@ session-scheduler/
 │           │   └── AuthContext.tsx
 │           ├── components/
 │           │   ├── Layout.tsx
+│           │   ├── AdminRoute.tsx
 │           │   ├── CreateProjectModal.tsx
 │           │   └── AddTimeBlockModal.tsx
 │           ├── pages/
 │           │   ├── LoginPage.tsx
 │           │   ├── DashboardPage.tsx
 │           │   ├── ProjectDetailPage.tsx
+│           │   ├── AdminOverviewPage.tsx
+│           │   ├── AdminUsersPage.tsx
 │           │   ├── PublicBookingPage.tsx
 │           │   └── ReschedulePage.tsx
 │           └── styles/
@@ -256,7 +278,7 @@ session-scheduler/
 
 ### Request Flow
 
-1. **Authenticated requests (PM/Engineer):** Browser → nginx → Express `/api/*` → JWT middleware → route handler → PostgreSQL → JSON response
+1. **Authenticated requests (Admin/PM/Engineer):** Browser → nginx → Express `/api/*` → JWT middleware → route handler → PostgreSQL → JSON response
 2. **Public booking requests (Client):** Browser → nginx → Express `/api/schedule/*` → password check in handler → PostgreSQL → JSON + .ics response
 3. **Static assets:** Browser → nginx → serves from React build directory (`/usr/share/nginx/html`)
 4. **SPA routing:** Any non-`/api` path → nginx `try_files` → `index.html` → React Router handles client-side
@@ -327,7 +349,7 @@ session-scheduler/
 | `first_name` | `VARCHAR(100)` | NOT NULL | |
 | `last_name` | `VARCHAR(100)` | NOT NULL | |
 | `phone` | `VARCHAR(30)` | NULLABLE | |
-| `role` | `VARCHAR(20)` | NOT NULL, CHECK IN ('pm', 'engineer') | Determines permission level |
+| `role` | `VARCHAR(20)` | NOT NULL, CHECK IN ('admin', 'pm', 'engineer') | Determines permission level |
 | `password_hash` | `VARCHAR(255)` | NOT NULL | bcrypt hash (cost factor 12) |
 | `created_at` | `TIMESTAMPTZ` | DEFAULT NOW() | |
 | `updated_at` | `TIMESTAMPTZ` | DEFAULT NOW() | Auto-updated via trigger |
@@ -339,7 +361,7 @@ session-scheduler/
 | `id` | `SERIAL` | PRIMARY KEY | |
 | `name` | `VARCHAR(255)` | NOT NULL | Display name |
 | `description` | `TEXT` | DEFAULT '' | Appears in booking page and .ics files |
-| `created_by` | `INTEGER` | FK → users(id), NOT NULL | Must be a PM |
+| `created_by` | `INTEGER` | FK → users(id), NOT NULL | Must be a PM or Admin |
 | `signup_password_hash` | `VARCHAR(255)` | NOT NULL | bcrypt hash — clients authenticate with this |
 | `is_group_signup` | `BOOLEAN` | DEFAULT FALSE | If true, multiple clients per slot |
 | `max_group_size` | `INTEGER` | DEFAULT 1 | Only relevant when `is_group_signup = true` |
@@ -461,7 +483,7 @@ Success responses return JSON directly. Error responses follow:
 
 | Method | Path | Auth | Description |
 |--------|------|:----:|-------------|
-| `POST` | `/api/auth/register` | — | Create a new PM or Engineer account |
+| `POST` | `/api/auth/register` | — | Create a new PM or Engineer account (Admin accounts are not public self-register) |
 | `POST` | `/api/auth/login` | — | Authenticate, receive JWT |
 | `GET` | `/api/auth/me` | JWT | Get current user profile |
 | `GET` | `/api/auth/engineers` | JWT | List all engineers (for assignment UI) |
@@ -487,6 +509,8 @@ Response (201):
 
 Errors: 400 (validation), 409 (email exists)
 ```
+
+Admin users are created via seed/manual bootstrap or existing admin actions; `register` does not accept `role: "admin"`.
 
 ##### `POST /api/auth/login`
 
@@ -514,9 +538,9 @@ Errors: 401 (invalid credentials)
 |--------|------|:----:|-------------|
 | `GET` | `/api/projects` | JWT | List all projects with stats |
 | `GET` | `/api/projects/:id` | JWT | Full project detail with time blocks and bookings |
-| `POST` | `/api/projects` | PM | Create a new project |
-| `PUT` | `/api/projects/:id` | PM | Update project fields |
-| `DELETE` | `/api/projects/:id` | PM | Delete project (cascades to blocks and bookings) |
+| `POST` | `/api/projects` | PM/Admin | Create a new project |
+| `PUT` | `/api/projects/:id` | PM/Admin | Update project fields |
+| `DELETE` | `/api/projects/:id` | PM/Admin | Delete project (cascades to blocks and bookings) |
 
 ##### `POST /api/projects`
 
@@ -580,7 +604,7 @@ Response (201): Full project object including generated share_token
 | Method | Path | Auth | Description |
 |--------|------|:----:|-------------|
 | `POST` | `/api/time-blocks` | JWT | Create a single time block |
-| `POST` | `/api/time-blocks/batch` | PM | Batch-create consecutive time blocks |
+| `POST` | `/api/time-blocks/batch` | PM/Admin | Batch-create consecutive time blocks |
 | `DELETE` | `/api/time-blocks/:id` | JWT | Delete block (fails if active bookings exist) |
 
 ##### `POST /api/time-blocks/batch`
@@ -610,9 +634,37 @@ Transaction: All blocks created atomically — if any fail, none are committed.
 
 ```
 Rules:
+- Admin: can delete any block
 - PM: can delete any block
 - Engineer: can only delete blocks they created (is_personal = true)
 - Fails with 409 if the block has any active (non-cancelled) bookings
+```
+
+---
+
+#### Admin (JWT + Admin Role Required)
+
+| Method | Path | Auth | Description |
+|--------|------|:----:|-------------|
+| `GET` | `/api/admin/overview` | Admin | Aggregated platform stats for admin dashboard |
+| `GET` | `/api/admin/users` | Admin | List users with role/status filters |
+| `PATCH` | `/api/admin/users/:id/role` | Admin | Change user role (`pm`, `engineer`, `admin`) |
+| `PATCH` | `/api/admin/users/:id/status` | Admin | Activate or deactivate a user account |
+
+##### `PATCH /api/admin/users/:id/role`
+
+```
+Request:
+{
+  "role": "admin" | "pm" | "engineer"
+}
+
+Response (200):
+{
+  "user": { "id", "email", "first_name", "last_name", "role", "updated_at" }
+}
+
+Errors: 400 (invalid role), 403 (not admin), 404 (user not found)
 ```
 
 ---
@@ -742,6 +794,8 @@ Content-Disposition: attachment; filename="session-{token_prefix}.ics"
 | `/dashboard` | `DashboardPage` | JWT | Project list with stats |
 | `/projects` | `DashboardPage` | JWT | Same as dashboard |
 | `/projects/:id` | `ProjectDetailPage` | JWT | Project management |
+| `/admin` | `AdminOverviewPage` | Admin only | Platform overview and admin metrics |
+| `/admin/users` | `AdminUsersPage` | Admin only | User search, role management, activation/deactivation |
 | `/schedule/:shareToken` | `PublicBookingPage` | Public | Client booking flow |
 | `/schedule/:shareToken/reschedule/:bookingToken` | `ReschedulePage` | Public | Client reschedule |
 | `*` | Redirect → `/dashboard` | — | Catch-all |
@@ -754,14 +808,24 @@ Content-Disposition: attachment; filename="session-{token_prefix}.ics"
     <Routes>
       ├── /login → <LoginPage />          ← GuestRoute wrapper
       ├── /schedule/* → <PublicBookingPage /> or <ReschedulePage />
+      ├── /admin/* → <ProtectedRoute>
+      │               <AdminRoute>        ← Requires user.role === 'admin'
+      │                 <Layout>
+      │                   <Outlet>
+      │                     ├── /admin → <AdminOverviewPage />
+      │                     └── /admin/users → <AdminUsersPage />
+      │                   </Outlet>
+      │                 </Layout>
+      │               </AdminRoute>
+      │             </ProtectedRoute>
       └── /* → <ProtectedRoute>
-               <Layout>                   ← Sidebar + main area
-                 <Outlet>
-                   ├── /dashboard → <DashboardPage />
-                   └── /projects/:id → <ProjectDetailPage />
-                 </Outlet>
-               </Layout>
-             </ProtectedRoute>
+                <Layout>                  ← Sidebar + main area
+                  <Outlet>
+                    ├── /dashboard → <DashboardPage />
+                    └── /projects/:id → <ProjectDetailPage />
+                  </Outlet>
+                </Layout>
+              </ProtectedRoute>
     </Routes>
   </AuthProvider>
 </BrowserRouter>
@@ -772,11 +836,14 @@ Content-Disposition: attachment; filename="session-{token_prefix}.ics"
 | Component | Purpose |
 |-----------|---------|
 | `AuthContext` | Stores user state, manages JWT in localStorage, provides `login()`, `register()`, `logout()` |
+| `AdminRoute` | Route guard that blocks non-admin users from `/admin/*` and redirects unauthorized users |
 | `Layout` | App shell with collapsible sidebar, nav links, user info badge, mobile hamburger menu |
 | `DashboardPage` | Lists all projects as cards, shows block count + booking count + session length, PM gets "Create Project" button |
 | `CreateProjectModal` | Form: name, description, session length dropdown, password, group signup toggle |
 | `ProjectDetailPage` | Full project view: share link copy, stats grid, time blocks table with booking details, "Add Time Blocks" button |
 | `AddTimeBlockModal` | Form: date picker, time picker, consecutive slot count, engineer multi-select toggle buttons |
+| `AdminOverviewPage` | Admin dashboard with high-level system metrics and links to admin workflows |
+| `AdminUsersPage` | User management UI for role changes and account activation/deactivation |
 | `PublicBookingPage` | Multi-step flow: password → slot grid (grouped by date) → contact form → confirmation with .ics download |
 | `ReschedulePage` | Shows current booking, available alternative slots, confirm reschedule or cancel entirely |
 
@@ -905,6 +972,7 @@ PostgreSQL data is stored in a Docker named volume (`pg_data`). Data survives `d
 
 - **JWT tokens** expire after 24 hours; refresh is not implemented (manual re-login required)
 - **Role checks** happen in Express middleware — the client never controls permission logic
+- **Admin authorization** requires both server-side RBAC checks on `/api/admin/*` and client-side route guards on `/admin/*`
 - **Password hashing** uses bcrypt with cost factor 12 (user accounts) and 10 (project passwords)
 - **Project passwords** are separate from user passwords — they're shared among clients for a specific project
 

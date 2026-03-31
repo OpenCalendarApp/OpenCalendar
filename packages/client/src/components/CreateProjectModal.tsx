@@ -15,6 +15,7 @@ export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalPro
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [bookingEmailDomainAllowlist, setBookingEmailDomainAllowlist] = useState('');
   const [sessionLengthMinutes, setSessionLengthMinutes] = useState(60);
   const [isGroupSignup, setIsGroupSignup] = useState(false);
   const [maxGroupSize, setMaxGroupSize] = useState(1);
@@ -30,6 +31,7 @@ export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalPro
       name: name.trim(),
       description: description.trim(),
       signup_password: signupPassword,
+      booking_email_domain_allowlist: bookingEmailDomainAllowlist.trim().toLowerCase(),
       is_group_signup: isGroupSignup,
       max_group_size: isGroupSignup ? maxGroupSize : 1,
       session_length_minutes: sessionLengthMinutes
@@ -87,6 +89,17 @@ export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalPro
               type="password"
               minLength={4}
               required
+            />
+          </label>
+
+          <label>
+            Booking Email Domain Allowlist (optional)
+            <input
+              value={bookingEmailDomainAllowlist}
+              onChange={(event) => setBookingEmailDomainAllowlist(event.target.value)}
+              type="text"
+              maxLength={255}
+              placeholder="client.com"
             />
           </label>
 

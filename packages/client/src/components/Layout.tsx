@@ -16,6 +16,10 @@ export function Layout(): JSX.Element {
         ) : null}
         <nav>
           <Link to="/dashboard">Dashboard</Link>
+          {user?.role === 'admin' ? <Link to="/admin">Admin Overview</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/audit">Audit Log</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/sso">SSO (OIDC)</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/users">Admin Users</Link> : null}
         </nav>
         <button type="button" onClick={logout}>
           Logout

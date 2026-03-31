@@ -10,6 +10,7 @@ const requestCounters: CounterMap = new Map();
 const requestDurations: Map<string, DurationStats> = new Map();
 const rateLimitCounters: CounterMap = new Map();
 const abuseEventCounters: CounterMap = new Map();
+const queueEventCounters: CounterMap = new Map();
 
 function incrementCounter(counter: CounterMap, key: string): void {
   counter.set(key, (counter.get(key) ?? 0) + 1);
@@ -51,6 +52,10 @@ export function recordAbuseEventMetric(eventName: string): void {
   incrementCounter(abuseEventCounters, eventName);
 }
 
+export function recordQueueEventMetric(eventName: string): void {
+  incrementCounter(queueEventCounters, eventName);
+}
+
 export function getMetricsSnapshot(): {
   uptime_seconds: number;
   requests: Array<{ key: string; count: number }>;
@@ -62,6 +67,7 @@ export function getMetricsSnapshot(): {
   }>;
   rate_limits: Array<{ key: string; count: number }>;
   abuse_events: Array<{ key: string; count: number }>;
+  queue_events: Array<{ key: string; count: number }>;
 } {
   return {
     uptime_seconds: Number(process.uptime().toFixed(2)),
@@ -75,7 +81,8 @@ export function getMetricsSnapshot(): {
       }))
       .sort((a, b) => a.key.localeCompare(b.key)),
     rate_limits: mapToSortedEntries(rateLimitCounters),
-    abuse_events: mapToSortedEntries(abuseEventCounters)
+    abuse_events: mapToSortedEntries(abuseEventCounters),
+    queue_events: mapToSortedEntries(queueEventCounters)
   };
 }
 
@@ -84,4 +91,5 @@ export function resetMetricsForTests(): void {
   requestDurations.clear();
   rateLimitCounters.clear();
   abuseEventCounters.clear();
+  queueEventCounters.clear();
 }

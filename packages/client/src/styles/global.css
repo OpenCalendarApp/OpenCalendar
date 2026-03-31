@@ -233,6 +233,69 @@ button {
   font-weight: 600;
 }
 
+.calendar-panel {
+  border: 1px solid #d7dde6;
+  border-radius: 12px;
+  padding: 0.75rem;
+  margin-bottom: 0.9rem;
+  background: #fbfdff;
+}
+
+.calendar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.calendar-header-row strong {
+  color: #284a70;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.calendar-weekdays span {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #5a6f88;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.calendar-day {
+  width: 100%;
+  border: 1px solid #c5d0df;
+  background: #ffffff;
+  color: #1d1d1f;
+  padding: 0.45rem 0.2rem;
+  min-height: 2.2rem;
+}
+
+.calendar-day.outside {
+  color: #8ea0b8;
+  background: #f3f6fa;
+}
+
+.calendar-day.today {
+  border-color: #6d8db2;
+}
+
+.calendar-day.selected {
+  background: #194677;
+  border-color: #194677;
+  color: #f6fbff;
+}
+
 .block-table {
   width: 100%;
   border-collapse: collapse;

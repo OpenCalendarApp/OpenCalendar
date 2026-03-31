@@ -4,6 +4,7 @@ interface CalendarInput {
   startIso: string;
   endIso: string;
   organizer?: string;
+  url?: string;
 }
 
 function escapeIcsValue(value: string): string {
@@ -68,6 +69,7 @@ export function createCalendarEvent(input: CalendarInput): string {
     'TRANSP:OPAQUE',
     `SUMMARY:${escapeIcsValue(input.title)}`,
     `DESCRIPTION:${escapeIcsValue(input.description)}`,
+    input.url ? `URL:${escapeIcsValue(input.url)}` : '',
     input.organizer ? `ORGANIZER:MAILTO:${escapeIcsValue(input.organizer)}` : '',
     'END:VEVENT',
     'END:VCALENDAR'

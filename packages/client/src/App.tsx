@@ -1,12 +1,18 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { AdminRoute } from './components/AdminRoute.js';
 import { Layout } from './components/Layout.js';
 import { useAuth } from './context/AuthContext.js';
+import { AdminAuditPage } from './pages/AdminAuditPage.js';
+import { AdminOverviewPage } from './pages/AdminOverviewPage.js';
+import { AdminSsoPage } from './pages/AdminSsoPage.js';
+import { AdminUsersPage } from './pages/AdminUsersPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { ProjectDetailPage } from './pages/ProjectDetailPage.js';
 import { PublicBookingPage } from './pages/PublicBookingPage.js';
 import { ReschedulePage } from './pages/ReschedulePage.js';
+import { SetupPage } from './pages/SetupPage.js';
 
 export function App(): JSX.Element {
   const { isAuthenticated, isBootstrapping } = useAuth();
@@ -25,6 +31,10 @@ export function App(): JSX.Element {
         path="/login"
         element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
       />
+      <Route
+        path="/setup"
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SetupPage />}
+      />
       <Route path="/schedule/:shareToken" element={<PublicBookingPage />} />
       <Route path="/schedule/:shareToken/reschedule/:bookingToken" element={<ReschedulePage />} />
 
@@ -36,6 +46,12 @@ export function App(): JSX.Element {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="projects" element={<DashboardPage />} />
         <Route path="projects/:id" element={<ProjectDetailPage />} />
+        <Route path="admin" element={<AdminRoute />}>
+          <Route index element={<AdminOverviewPage />} />
+          <Route path="audit" element={<AdminAuditPage />} />
+          <Route path="sso" element={<AdminSsoPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+        </Route>
       </Route>
 
       <Route

@@ -90,28 +90,29 @@
 # EPIC 11 — Future Considerations
 
 ## High Priority
-- [ ] Rate limiting improvements (nginx + app layer)
-- [ ] Observability (logs, metrics, traces)
-- [ ] Background job queue (email, retries)
-- [ ] Backup + restore automation
-- [ ] Abuse protection (lockouts, CAPTCHA)
+- [x] Rate limiting improvements (nginx + app layer)
+- [x] Observability (logs, metrics, traces)
+- [x] Background job queue (email, retries)
+- [x] Backup + restore automation
+- [x] Abuse protection (lockouts, CAPTCHA)
 
 ## Medium Priority
-- [ ] Email notifications (SendGrid/SES/Resend)
-- [ ] Google Calendar integration (OAuth2)
-- [ ] Recurring time blocks
-- [ ] Timezone selection UI
-- [ ] Booking email domain validation (project-level root domain allowlist)
-- [ ] Idempotency keys for booking
-- [ ] API versioning (/api/v1)
-- [ ] Data retention + deletion policies
-- [ ] Load testing + capacity planning
-- [ ] Multi-tenant isolation (tenant_id, RLS)
-- [ ] JWT refresh tokens + revocation
+- [x] Email notifications (SendGrid/SES/Resend)
+- [x] Microsoft Calendar integration (OAuth2)
+- [x] Recurring time blocks
+- [x] Timezone selection UI
+- [x] Booking email domain validation (project-level root domain allowlist)
+- [x] Idempotency keys for booking
+- [x] API versioning (/api/v1)
+- [x] Data retention + deletion policies
+- [x] Load testing + capacity planning
+- [x] Multi-tenant isolation (tenant_id, RLS)
+- [x] JWT refresh tokens + revocation
+- [x] Admin page with specific routes and permissions
 
 ## Low Priority
-- [ ] Audit log (who did what)
-- [ ] Waitlist system
+- [x] Audit log (who did what)
+- [x] Waitlist system
 - [ ] SSO (SAML/OIDC)
 
 ---
@@ -126,3 +127,4 @@
 - [ ] ICS downloads work
 - [ ] App works on mobile
 - [ ] Docker deployment works
+    

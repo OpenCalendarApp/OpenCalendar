@@ -1,12 +1,27 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 
-import type { BookingResponse, PublicProjectResponse, PublicSlotInfo } from '@session-scheduler/shared';
+import type {
+  BookingResponse,
+  PublicProjectResponse,
+  PublicSlotInfo,
+  PublicWaitlistSlotInfo,
+  WaitlistJoinResponse
+} from '@session-scheduler/shared';
 
 import { apiFetch, buildApiUrl } from '../api/client.js';
+import { TimeZoneSelect } from '../components/TimeZoneSelect.js';
+import { useTimezone } from '../context/TimezoneContext.js';
 import { useToast } from '../context/ToastContext.js';
+import {
+  formatDateInTimeZone,
+  formatDateTimeInTimeZone,
+  formatTimeInTimeZone,
+  getDateKeyInTimeZone
+} from '../utils/timezone.js';
 
 type BookingStep = 'password' | 'slot' | 'contact' | 'confirm';
+type BookingMode = 'booking' | 'waitlist';
 
 interface ContactFormState {
   first_name: string;
@@ -22,18 +37,17 @@ function triggerDownload(url: string, filename: string): void {
   anchor.click();
 }
 
-function formatSlotLabel(slot: PublicSlotInfo): string {
-  const start = new Date(slot.start_time);
-  const end = new Date(slot.end_time);
-
-  return `${start.toLocaleString()} - ${end.toLocaleTimeString()}`;
+function formatSlotLabel(slot: PublicSlotInfo, timeZone: string): string {
+  return `${formatDateTimeInTimeZone(slot.start_time, timeZone)} - ${formatTimeInTimeZone(slot.end_time, timeZone)}`;
 }
 
 export function PublicBookingPage(): JSX.Element {
   const { shareToken } = useParams<{ shareToken: string }>();
   const { showToast } = useToast();
+  const { timeZone } = useTimezone();
 
   const [step, setStep] = useState<BookingStep>('password');
+  const [bookingMode, setBookingMode] = useState<BookingMode>('booking');
   const [password, setPassword] = useState('');
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
   const [contact, setContact] = useState<ContactFormState>({
@@ -45,6 +59,7 @@ export function PublicBookingPage(): JSX.Element {
 
   const [projectResponse, setProjectResponse] = useState<PublicProjectResponse | null>(null);
   const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
+  const [waitlistResponse, setWaitlistResponse] = useState<WaitlistJoinResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +86,7 @@ export function PublicBookingPage(): JSX.Element {
     })();
   }, [shareToken]);
 
-  const selectedSlot = useMemo(() => {
+  const selectedAvailableSlot = useMemo(() => {
     if (!projectResponse || selectedSlotId === null) {
       return null;
     }
@@ -79,22 +94,57 @@ export function PublicBookingPage(): JSX.Element {
     return projectResponse.available_slots.find((slot) => slot.time_block_id === selectedSlotId) ?? null;
   }, [projectResponse, selectedSlotId]);
 
+  const selectedWaitlistSlot = useMemo(() => {
+    if (!projectResponse || selectedSlotId === null) {
+      return null;
+    }
+
+    return projectResponse.full_slots.find((slot) => slot.time_block_id === selectedSlotId) ?? null;
+  }, [projectResponse, selectedSlotId]);
+
+  const selectedSlot = selectedAvailableSlot ?? selectedWaitlistSlot;
+
   const slotsByDay = useMemo(() => {
     if (!projectResponse) {
       return [] as Array<{ dayLabel: string; slots: PublicSlotInfo[] }>;
     }
 
-    const grouped = new Map<string, PublicSlotInfo[]>();
+    const grouped = new Map<string, { dayLabel: string; slots: PublicSlotInfo[] }>();
 
     for (const slot of projectResponse.available_slots) {
-      const dayLabel = new Date(slot.start_time).toLocaleDateString();
-      const existing = grouped.get(dayLabel) ?? [];
-      existing.push(slot);
-      grouped.set(dayLabel, existing);
+      const dayKey = getDateKeyInTimeZone(slot.start_time, timeZone);
+      const existing = grouped.get(dayKey) ?? {
+        dayLabel: formatDateInTimeZone(slot.start_time, timeZone),
+        slots: []
+      };
+
+      existing.slots.push(slot);
+      grouped.set(dayKey, existing);
     }
 
-    return Array.from(grouped.entries()).map(([dayLabel, slots]) => ({ dayLabel, slots }));
-  }, [projectResponse]);
+    return Array.from(grouped.values());
+  }, [projectResponse, timeZone]);
+
+  const fullSlotsByDay = useMemo(() => {
+    if (!projectResponse) {
+      return [] as Array<{ dayLabel: string; slots: PublicWaitlistSlotInfo[] }>;
+    }
+
+    const grouped = new Map<string, { dayLabel: string; slots: PublicWaitlistSlotInfo[] }>();
+
+    for (const slot of projectResponse.full_slots) {
+      const dayKey = getDateKeyInTimeZone(slot.start_time, timeZone);
+      const existing = grouped.get(dayKey) ?? {
+        dayLabel: formatDateInTimeZone(slot.start_time, timeZone),
+        slots: []
+      };
+
+      existing.slots.push(slot);
+      grouped.set(dayKey, existing);
+    }
+
+    return Array.from(grouped.values());
+  }, [projectResponse, timeZone]);
 
   async function submitBooking(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -108,18 +158,35 @@ export function PublicBookingPage(): JSX.Element {
     setError(null);
 
     try {
-      const response = await apiFetch<BookingResponse>(`/schedule/book/${shareToken}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          password,
-          time_block_id: selectedSlotId,
-          ...contact
-        })
-      });
+      if (bookingMode === 'waitlist') {
+        const response = await apiFetch<WaitlistJoinResponse>(`/schedule/waitlist/${shareToken}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            password,
+            time_block_id: selectedSlotId,
+            ...contact
+          })
+        });
 
-      setBookingResponse(response);
-      setStep('confirm');
-      showToast('Booking confirmed.', 'success');
+        setBookingResponse(null);
+        setWaitlistResponse(response);
+        setStep('confirm');
+        showToast(response.already_exists ? 'Already on waitlist.' : 'Added to waitlist.', 'success');
+      } else {
+        const response = await apiFetch<BookingResponse>(`/schedule/book/${shareToken}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            password,
+            time_block_id: selectedSlotId,
+            ...contact
+          })
+        });
+
+        setWaitlistResponse(null);
+        setBookingResponse(response);
+        setStep('confirm');
+        showToast('Booking confirmed.', 'success');
+      }
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Unable to complete booking';
       setError(message);
@@ -131,7 +198,11 @@ export function PublicBookingPage(): JSX.Element {
         message.toLowerCase().includes('full') ||
         message.toLowerCase().includes('no longer available')
       ) {
-        setStep('slot');
+        setBookingMode('waitlist');
+        setStep('contact');
+      } else if (message.toLowerCase().includes('book directly')) {
+        setBookingMode('booking');
+        setStep('contact');
       }
     } finally {
       setIsSubmitting(false);
@@ -140,6 +211,7 @@ export function PublicBookingPage(): JSX.Element {
 
   function resetFlow(): void {
     setStep('password');
+    setBookingMode('booking');
     setPassword('');
     setSelectedSlotId(null);
     setContact({
@@ -149,6 +221,7 @@ export function PublicBookingPage(): JSX.Element {
       phone: ''
     });
     setBookingResponse(null);
+    setWaitlistResponse(null);
     setError(null);
   }
 
@@ -191,6 +264,7 @@ export function PublicBookingPage(): JSX.Element {
       <div className="detail-card">
         <h2>{projectResponse.project.name}</h2>
         <p>{projectResponse.project.description || 'No project description provided.'}</p>
+        <TimeZoneSelect label="Display Timezone" />
       </div>
 
       {step === 'password' ? (
@@ -226,9 +300,11 @@ export function PublicBookingPage(): JSX.Element {
         <div className="detail-card">
           <h3>Step 2: Select a Slot</h3>
 
-          {projectResponse.available_slots.length === 0 ? (
-            <p className="hint">No available slots remain for this project.</p>
-          ) : (
+          {projectResponse.available_slots.length === 0 && projectResponse.full_slots.length === 0 ? (
+            <p className="hint">No upcoming slots remain for this project.</p>
+          ) : null}
+
+          {projectResponse.available_slots.length > 0 ? (
             <div className="slot-groups">
               {slotsByDay.map((group) => (
                 <div key={group.dayLabel} className="slot-group">
@@ -240,11 +316,14 @@ export function PublicBookingPage(): JSX.Element {
                           <input
                             type="radio"
                             name="selected-slot"
-                            checked={selectedSlotId === slot.time_block_id}
-                            onChange={() => setSelectedSlotId(slot.time_block_id)}
+                            checked={bookingMode === 'booking' && selectedSlotId === slot.time_block_id}
+                            onChange={() => {
+                              setSelectedSlotId(slot.time_block_id);
+                              setBookingMode('booking');
+                            }}
                           />
                           <span>
-                            <strong>{formatSlotLabel(slot)}</strong>
+                            <strong>{formatSlotLabel(slot, timeZone)}</strong>
                             <br />
                             Remaining: {slot.remaining_slots}
                             <br />
@@ -262,7 +341,51 @@ export function PublicBookingPage(): JSX.Element {
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="hint">No currently open slots. You can still join the waitlist below.</p>
           )}
+
+          {projectResponse.full_slots.length > 0 ? (
+            <div className="slot-groups">
+              <h4>Fully Booked Slots (Join Waitlist)</h4>
+              {fullSlotsByDay.map((group) => (
+                <div key={`waitlist-${group.dayLabel}`} className="slot-group">
+                  <h4>{group.dayLabel}</h4>
+                  <ul className="block-list">
+                    {group.slots.map((slot) => (
+                      <li key={slot.time_block_id}>
+                        <label className="checkbox-label">
+                          <input
+                            type="radio"
+                            name="selected-slot"
+                            checked={bookingMode === 'waitlist' && selectedSlotId === slot.time_block_id}
+                            onChange={() => {
+                              setSelectedSlotId(slot.time_block_id);
+                              setBookingMode('waitlist');
+                            }}
+                          />
+                          <span>
+                            <strong>{formatSlotLabel(slot, timeZone)}</strong>
+                            <br />
+                            Status: Full
+                            <br />
+                            Waitlist count: {slot.waitlist_count}
+                            <br />
+                            Engineers:{' '}
+                            {slot.engineers.length > 0
+                              ? slot.engineers
+                                  .map((engineer) => `${engineer.first_name} ${engineer.last_name}`)
+                                  .join(', ')
+                              : 'Unassigned'}
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           {error ? <p className="error">{error}</p> : null}
 
@@ -281,7 +404,7 @@ export function PublicBookingPage(): JSX.Element {
                 setError(null);
                 setStep('contact');
               }}
-              disabled={projectResponse.available_slots.length === 0}
+              disabled={projectResponse.available_slots.length === 0 && projectResponse.full_slots.length === 0}
             >
               Continue
             </button>
@@ -291,9 +414,12 @@ export function PublicBookingPage(): JSX.Element {
 
       {step === 'contact' ? (
         <form className="detail-card" onSubmit={(event) => void submitBooking(event)}>
-          <h3>Step 3: Contact Details</h3>
+          <h3>Step 3: Contact Details ({bookingMode === 'waitlist' ? 'Waitlist' : 'Booking'})</h3>
 
-          {selectedSlot ? <p className="hint">Selected slot: {formatSlotLabel(selectedSlot)}</p> : null}
+          {selectedSlot ? <p className="hint">Selected slot: {formatSlotLabel(selectedSlot, timeZone)}</p> : null}
+          {bookingMode === 'waitlist' ? (
+            <p className="hint">This slot is currently full. We will notify you if a spot opens.</p>
+          ) : null}
 
           <label>
             First Name
@@ -344,7 +470,9 @@ export function PublicBookingPage(): JSX.Element {
               Back
             </button>
             <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Booking...' : 'Confirm Booking'}
+              {isSubmitting
+                ? (bookingMode === 'waitlist' ? 'Joining waitlist...' : 'Booking...')
+                : (bookingMode === 'waitlist' ? 'Join Waitlist' : 'Confirm Booking')}
             </button>
           </div>
         </form>
@@ -374,6 +502,19 @@ export function PublicBookingPage(): JSX.Element {
             </button>
             <button type="button" className="secondary-button" onClick={resetFlow}>
               Book Another Slot
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {step === 'confirm' && !bookingResponse && waitlistResponse ? (
+        <div className="detail-card">
+          <h3>Step 4: Waitlist Confirmed</h3>
+          <p>{waitlistResponse.message}</p>
+          {selectedSlot ? <p className="hint">Requested slot: {formatSlotLabel(selectedSlot, timeZone)}</p> : null}
+          <div className="button-row">
+            <button type="button" className="secondary-button" onClick={resetFlow}>
+              Done
             </button>
           </div>
         </div>

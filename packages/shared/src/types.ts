@@ -1,13 +1,17 @@
-export type UserRole = 'pm' | 'engineer';
+export type UserRole = 'admin' | 'pm' | 'engineer';
 
 export interface JwtPayload {
   userId: number;
+  tenantId: number;
+  tenantUid: string;
   email: string;
   role: UserRole;
 }
 
 export interface User {
   id: number;
+  tenant_id: number;
+  tenant_uid: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -25,6 +29,7 @@ export interface Project {
   id: number;
   name: string;
   description: string;
+  booking_email_domain_allowlist: string | null;
   created_by: number;
   is_group_signup: boolean;
   max_group_size: number;
@@ -111,6 +116,7 @@ export interface ProjectDetail extends Project {
 
 export interface AuthResponse {
   token: string;
+  refresh_token: string;
   user: User;
 }
 
@@ -120,6 +126,109 @@ export interface MeResponse {
 
 export interface EngineersResponse {
   engineers: User[];
+}
+
+export interface MicrosoftCalendarAuthUrlResponse {
+  authorization_url: string;
+}
+
+export interface OidcSsoAuthUrlResponse {
+  authorization_url: string;
+}
+
+export interface MicrosoftCalendarStatusResponse {
+  connected: boolean;
+  account_email: string | null;
+  token_expires_at: string | null;
+}
+
+export interface AdminOverviewStats {
+  total_users: number;
+  active_users: number;
+  admins: number;
+  pms: number;
+  engineers: number;
+  projects: number;
+  active_projects: number;
+  time_blocks: number;
+  active_bookings: number;
+}
+
+export interface AdminOverviewResponse {
+  stats: AdminOverviewStats;
+}
+
+export interface AdminUserSummary {
+  id: number;
+  tenant_id: number;
+  tenant_uid: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserSummary[];
+}
+
+export interface AdminUserResponse {
+  user: AdminUserSummary;
+}
+
+export interface AdminAuditEvent {
+  id: number;
+  tenant_id: number;
+  actor_user_id: number | null;
+  actor_role: UserRole | 'system';
+  actor_name: string | null;
+  actor_email: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: number | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AdminAuditLogResponse {
+  events: AdminAuditEvent[];
+}
+
+export interface AdminOidcSsoConfig {
+  enabled: boolean;
+  issuer_url: string;
+  authorization_endpoint: string;
+  token_endpoint: string;
+  userinfo_endpoint: string;
+  client_id: string;
+  client_secret_configured: boolean;
+  scopes: string;
+  default_role: 'pm' | 'engineer';
+  auto_provision: boolean;
+  claim_email: string;
+  claim_first_name: string;
+  claim_last_name: string;
+  success_redirect_url: string;
+  error_redirect_url: string;
+}
+
+export interface AdminOidcSsoConfigResponse {
+  config: AdminOidcSsoConfig;
+}
+
+export interface SetupStatusResponse {
+  is_initialized: boolean;
+  requires_setup: boolean;
+  admin_user_count: number;
+  tenant_count: number;
+}
+
+export interface SetupInitializeResponse extends AuthResponse {
+  message: string;
 }
 
 export interface ProjectsResponse {
@@ -142,6 +251,7 @@ export interface PublicProjectInfo {
   id: number;
   name: string;
   description: string;
+  booking_email_domain_allowlist: string | null;
   session_length_minutes: number;
   is_group_signup: boolean;
   share_token: string;
@@ -155,9 +265,19 @@ export interface PublicSlotInfo {
   engineers: PublicEngineerSummary[];
 }
 
+export interface PublicWaitlistSlotInfo {
+  time_block_id: number;
+  start_time: string;
+  end_time: string;
+  remaining_slots: number;
+  waitlist_count: number;
+  engineers: PublicEngineerSummary[];
+}
+
 export interface PublicProjectResponse {
   project: PublicProjectInfo;
   available_slots: PublicSlotInfo[];
+  full_slots: PublicWaitlistSlotInfo[];
 }
 
 export interface CurrentBookingSlotInfo {
@@ -194,4 +314,24 @@ export interface RescheduleResponse {
 export interface CancelBookingResponse {
   booking: Booking;
   message: string;
+}
+
+export type WaitlistEntryStatus = 'active' | 'notified' | 'booked' | 'removed';
+
+export interface WaitlistEntry {
+  id: number;
+  time_block_id: number;
+  client_first_name: string;
+  client_last_name: string;
+  client_email: string;
+  client_phone: string;
+  status: WaitlistEntryStatus;
+  notified_at: string | null;
+  created_at: string;
+}
+
+export interface WaitlistJoinResponse {
+  waitlist_entry: WaitlistEntry;
+  message: string;
+  already_exists: boolean;
 }

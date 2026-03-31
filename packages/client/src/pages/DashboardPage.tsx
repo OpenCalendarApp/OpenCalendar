@@ -1,18 +1,32 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-import type { ProjectSummary, ProjectsResponse } from '@session-scheduler/shared';
+import type {
+  MicrosoftCalendarAuthUrlResponse,
+  MicrosoftCalendarStatusResponse,
+  ProjectSummary,
+  ProjectsResponse
+} from '@session-scheduler/shared';
 
 import { apiFetch } from '../api/client.js';
 import { CreateProjectModal } from '../components/CreateProjectModal.js';
 import { useAuth } from '../context/AuthContext.js';
+import { useToast } from '../context/ToastContext.js';
 
 export function DashboardPage(): JSX.Element {
   const { user } = useAuth();
+  const { showToast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [calendarStatus, setCalendarStatus] = useState<MicrosoftCalendarStatusResponse | null>(null);
+  const [calendarPending, setCalendarPending] = useState(false);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
+  const isEngineer = user?.role === 'engineer';
+  const canManageProjects = user?.role === 'pm' || user?.role === 'admin';
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -32,11 +46,97 @@ export function DashboardPage(): JSX.Element {
     void loadProjects();
   }, [loadProjects]);
 
+  const loadCalendarStatus = useCallback(async () => {
+    if (!isEngineer) {
+      return;
+    }
+
+    setCalendarError(null);
+
+    try {
+      const status = await apiFetch<MicrosoftCalendarStatusResponse>('/auth/microsoft/status');
+      setCalendarStatus(status);
+    } catch (loadStatusError) {
+      setCalendarError(loadStatusError instanceof Error ? loadStatusError.message : 'Unable to load calendar status');
+    }
+  }, [isEngineer]);
+
+  useEffect(() => {
+    if (!isEngineer) {
+      return;
+    }
+    void loadCalendarStatus();
+  }, [isEngineer, loadCalendarStatus]);
+
+  useEffect(() => {
+    if (!isEngineer) {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const microsoftStatus = params.get('microsoft');
+    if (!microsoftStatus) {
+      return;
+    }
+
+    if (microsoftStatus === 'connected') {
+      showToast('Microsoft Calendar connected.', 'success');
+      void loadCalendarStatus();
+    } else if (microsoftStatus === 'error') {
+      const reason = params.get('reason');
+      const suffix = reason ? ` (${reason.replaceAll('_', ' ')})` : '';
+      showToast(`Microsoft Calendar connection failed${suffix}.`, 'error');
+    }
+
+    params.delete('microsoft');
+    params.delete('reason');
+    const nextSearch = params.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : ''
+      },
+      { replace: true }
+    );
+  }, [isEngineer, loadCalendarStatus, location.pathname, location.search, navigate, showToast]);
+
+  async function handleConnectMicrosoftCalendar(): Promise<void> {
+    setCalendarPending(true);
+    setCalendarError(null);
+
+    try {
+      const response = await apiFetch<MicrosoftCalendarAuthUrlResponse>('/auth/microsoft/connect');
+      window.location.assign(response.authorization_url);
+    } catch (connectError) {
+      const message = connectError instanceof Error ? connectError.message : 'Unable to start Microsoft OAuth flow';
+      setCalendarError(message);
+      showToast(message, 'error');
+      setCalendarPending(false);
+    }
+  }
+
+  async function handleDisconnectMicrosoftCalendar(): Promise<void> {
+    setCalendarPending(true);
+    setCalendarError(null);
+
+    try {
+      await apiFetch<unknown>('/auth/microsoft/connection', { method: 'DELETE' });
+      showToast('Microsoft Calendar disconnected.', 'success');
+      await loadCalendarStatus();
+    } catch (disconnectError) {
+      const message = disconnectError instanceof Error ? disconnectError.message : 'Unable to disconnect Microsoft Calendar';
+      setCalendarError(message);
+      showToast(message, 'error');
+    } finally {
+      setCalendarPending(false);
+    }
+  }
+
   return (
     <section>
       <div className="header-row">
         <h2>Dashboard</h2>
-        {user?.role === 'pm' ? (
+        {canManageProjects ? (
           <button type="button" onClick={() => setIsCreateModalOpen(true)} className="header-button">
             Create Project
           </button>
@@ -57,6 +157,43 @@ export function DashboardPage(): JSX.Element {
 
       {!isLoading && !error && projects.length === 0 ? (
         <p className="hint">No projects yet. Create your first project to begin scheduling.</p>
+      ) : null}
+
+      {isEngineer ? (
+        <div className="detail-card status-card">
+          <h3>Microsoft Calendar</h3>
+          <p className="hint">
+            {calendarStatus?.connected
+              ? `Connected as ${calendarStatus.account_email ?? 'your Microsoft account'}`
+              : 'Not connected. Connect to auto-sync your assigned bookings.'}
+          </p>
+          {calendarStatus?.token_expires_at ? (
+            <p className="hint">
+              Token expires: {new Date(calendarStatus.token_expires_at).toLocaleString()}
+            </p>
+          ) : null}
+          {calendarError ? <p className="error">{calendarError}</p> : null}
+          <div className="button-row">
+            {calendarStatus?.connected ? (
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void handleDisconnectMicrosoftCalendar()}
+                disabled={calendarPending}
+              >
+                {calendarPending ? 'Disconnecting...' : 'Disconnect Calendar'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleConnectMicrosoftCalendar()}
+                disabled={calendarPending}
+              >
+                {calendarPending ? 'Redirecting...' : 'Connect Calendar'}
+              </button>
+            )}
+          </div>
+        </div>
       ) : null}
 
       <ul className="project-grid">

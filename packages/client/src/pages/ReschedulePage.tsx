@@ -10,7 +10,15 @@ import type {
 
 import { apiFetch, buildApiUrl } from '../api/client.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
+import { TimeZoneSelect } from '../components/TimeZoneSelect.js';
+import { useTimezone } from '../context/TimezoneContext.js';
 import { useToast } from '../context/ToastContext.js';
+import {
+  formatDateInTimeZone,
+  formatDateTimeInTimeZone,
+  formatTimeInTimeZone,
+  getDateKeyInTimeZone
+} from '../utils/timezone.js';
 
 function triggerDownload(url: string, filename: string): void {
   const anchor = document.createElement('a');
@@ -19,16 +27,15 @@ function triggerDownload(url: string, filename: string): void {
   anchor.click();
 }
 
-function formatSlotLabel(slot: { start_time: string; end_time: string }): string {
-  const start = new Date(slot.start_time);
-  const end = new Date(slot.end_time);
-  return `${start.toLocaleString()} - ${end.toLocaleTimeString()}`;
+function formatSlotLabel(slot: { start_time: string; end_time: string }, timeZone: string): string {
+  return `${formatDateTimeInTimeZone(slot.start_time, timeZone)} - ${formatTimeInTimeZone(slot.end_time, timeZone)}`;
 }
 
 export function ReschedulePage(): JSX.Element {
   const { shareToken, bookingToken } = useParams<{ shareToken: string; bookingToken: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { timeZone } = useTimezone();
 
   const [lookup, setLookup] = useState<BookingLookupResponse | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
@@ -77,16 +84,20 @@ export function ReschedulePage(): JSX.Element {
       return [] as Array<{ dayLabel: string; slots: PublicSlotInfo[] }>;
     }
 
-    const grouped = new Map<string, PublicSlotInfo[]>();
+    const grouped = new Map<string, { dayLabel: string; slots: PublicSlotInfo[] }>();
     for (const slot of lookup.available_slots) {
-      const dayLabel = new Date(slot.start_time).toLocaleDateString();
-      const existing = grouped.get(dayLabel) ?? [];
-      existing.push(slot);
-      grouped.set(dayLabel, existing);
+      const dayKey = getDateKeyInTimeZone(slot.start_time, timeZone);
+      const existing = grouped.get(dayKey) ?? {
+        dayLabel: formatDateInTimeZone(slot.start_time, timeZone),
+        slots: []
+      };
+
+      existing.slots.push(slot);
+      grouped.set(dayKey, existing);
     }
 
-    return Array.from(grouped.entries()).map(([dayLabel, slots]) => ({ dayLabel, slots }));
-  }, [lookup]);
+    return Array.from(grouped.values());
+  }, [lookup, timeZone]);
 
   async function submitReschedule(): Promise<void> {
     if (!bookingToken || selectedSlotId === null) {
@@ -186,7 +197,8 @@ export function ReschedulePage(): JSX.Element {
         <p>
           Current booking for {lookup.booking.client_first_name} {lookup.booking.client_last_name}
         </p>
-        <p className="hint">Current slot: {formatSlotLabel(lookup.current_slot)}</p>
+        <p className="hint">Current slot: {formatSlotLabel(lookup.current_slot, timeZone)}</p>
+        <TimeZoneSelect label="Display Timezone" />
         <button type="button" className="secondary-button" onClick={() => downloadCalendar(lookup.booking.booking_token)}>
           Download Current Calendar (.ics)
         </button>
@@ -225,7 +237,7 @@ export function ReschedulePage(): JSX.Element {
                           onChange={() => setSelectedSlotId(slot.time_block_id)}
                         />
                         <span>
-                          <strong>{formatSlotLabel(slot)}</strong>
+                          <strong>{formatSlotLabel(slot, timeZone)}</strong>
                           <br />
                           Remaining: {slot.remaining_slots}
                           <br />

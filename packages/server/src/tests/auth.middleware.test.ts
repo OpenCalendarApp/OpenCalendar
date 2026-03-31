@@ -50,6 +50,8 @@ void test('auth middleware returns 401 when token is missing', () => {
 void test('auth middleware sets req.user and calls next for valid token', () => {
   const token = signToken({
     userId: 1,
+    tenantId: 1,
+    tenantUid: '00000000-0000-0000-0000-000000000001',
     email: 'pm@example.com',
     role: 'pm'
   });
@@ -74,6 +76,8 @@ void test('role middleware blocks users outside allowed roles', () => {
   const req = createMockRequest();
   req.user = {
     userId: 2,
+    tenantId: 1,
+    tenantUid: '00000000-0000-0000-0000-000000000001',
     email: 'engineer@example.com',
     role: 'engineer'
   };
