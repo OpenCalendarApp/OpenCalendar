@@ -1,0 +1,46 @@
+location: eastus
+name: calendar-genie-client
+type: Microsoft.App/containerApps
+
+properties:
+  managedEnvironmentId: __MANAGED_ENVIRONMENT_ID__
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      allowInsecure: false
+      targetPort: 80
+      transport: auto
+      traffic:
+        - latestRevision: true
+          weight: 100
+    registries:
+      - server: __ACR_LOGIN_SERVER__
+        identity: system
+  template:
+    revisionSuffix: baseline
+    containers:
+      - name: client
+        image: __CLIENT_IMAGE__
+        env:
+          - name: API_UPSTREAM
+            value: __SERVER_INTERNAL_ORIGIN__
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          - type: Readiness
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
+    scale:
+      minReplicas: 1
+      maxReplicas: 2

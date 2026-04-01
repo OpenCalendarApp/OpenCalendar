@@ -60,6 +60,8 @@ services:
       dockerfile: packages/client/Dockerfile
     container_name: calendar-genie-client
     restart: unless-stopped
+    environment:
+      API_UPSTREAM: ${API_UPSTREAM:-http://server:4000}
     ports:
       - "3000:80"
     depends_on:

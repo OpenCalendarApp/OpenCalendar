@@ -110,6 +110,7 @@ cp .env.example .env
 | --- | --- | --- | --- |
 | `VITE_API_URL` | `/api` | No | Client runtime API base URL used by browser requests. |
 | `VITE_DEV_PROXY_TARGET` | `http://127.0.0.1:4000` | No | Vite dev-server proxy target for `/api` requests. |
+| `API_UPSTREAM` | `http://server:4000` | No | nginx proxy upstream used by the production client container. Override this in Azure Container Apps so the client app proxies `/api` to the internal server app hostname. |
 
 ## Load Testing Helpers
 

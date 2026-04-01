@@ -1,0 +1,88 @@
+location: eastus
+name: calendar-genie-server
+type: Microsoft.App/containerApps
+
+properties:
+  managedEnvironmentId: __MANAGED_ENVIRONMENT_ID__
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: false
+      allowInsecure: false
+      targetPort: 4000
+      transport: auto
+    registries:
+      - server: __ACR_LOGIN_SERVER__
+        identity: system
+    secrets:
+      - name: database-url
+        value: __DATABASE_URL__
+      - name: jwt-secret
+        value: __JWT_SECRET__
+      - name: metrics-token
+        value: __METRICS_TOKEN__
+      - name: resend-api-key
+        value: __RESEND_API_KEY__
+      - name: microsoft-client-id
+        value: __MICROSOFT_CLIENT_ID__
+      - name: microsoft-client-secret
+        value: __MICROSOFT_CLIENT_SECRET__
+  template:
+    revisionSuffix: baseline
+    containers:
+      - name: server
+        image: __SERVER_IMAGE__
+        env:
+          - name: NODE_ENV
+            value: production
+          - name: PORT
+            value: "4000"
+          - name: TRUST_PROXY
+            value: "1"
+          - name: DATABASE_URL
+            secretRef: database-url
+          - name: CORS_ORIGIN
+            value: https://calendar.example.com
+          - name: BOOKING_PORTAL_BASE_URL
+            value: https://calendar.example.com
+          - name: JWT_SECRET
+            secretRef: jwt-secret
+          - name: METRICS_TOKEN
+            secretRef: metrics-token
+          - name: EMAIL_PROVIDER
+            value: console
+          - name: EMAIL_FROM
+            value: no-reply@calendar.example.com
+          - name: RESEND_API_KEY
+            secretRef: resend-api-key
+          - name: MICROSOFT_CLIENT_ID
+            secretRef: microsoft-client-id
+          - name: MICROSOFT_CLIENT_SECRET
+            secretRef: microsoft-client-secret
+          - name: MICROSOFT_REDIRECT_URI
+            value: https://calendar.example.com/api/auth/microsoft/callback
+          - name: MICROSOFT_OAUTH_SUCCESS_REDIRECT_URL
+            value: https://calendar.example.com/dashboard
+          - name: MICROSOFT_OAUTH_ERROR_REDIRECT_URL
+            value: https://calendar.example.com/dashboard
+          - name: SSO_OIDC_REDIRECT_URI
+            value: https://calendar.example.com/api/v1/auth/sso/oidc/callback
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /api/health/live
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          - type: Readiness
+            httpGet:
+              path: /api/health/ready
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+    scale:
+      minReplicas: 1
+      maxReplicas: 1
