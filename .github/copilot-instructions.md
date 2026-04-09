@@ -2,7 +2,7 @@
 applyTo: '**'
 ---
 
-# CalendarGenie — Session Scheduler Workspace Instructions
+# OpenCalendar — Session Scheduler Workspace Instructions
 
 > **Project Status:** Pre-development (architecture spec complete, development starting)  
 > **Last Updated:** March 2026  
@@ -33,7 +33,7 @@ docker compose up --build -d          # Build and deploy all services
 This is an **npm workspaces monorepo** (`packages/shared`, `packages/server`, `packages/client`). Both server and client depend on shared types; changes to shared require rebuilding consumers.
 
 ```
-CalendarGenie/
+OpenCalendar/
 ├── package.json                      # Root workspaces config
 ├── docker-compose.yml                # Orchestrates postgres + server + client
 ├── .env.example                      # Environment template (copy to .env locally)
@@ -463,7 +463,7 @@ Before production deployment:
 
 ## AI Development Tools (Prompts & Agents)
 
-CalendarGenie includes specialized prompts and agents to accelerate development:
+OpenCalendar includes specialized prompts and agents to accelerate development:
 
 ### Prompts (Single-Task Workflows)
 

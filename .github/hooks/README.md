@@ -5,7 +5,7 @@ description: "Overview of all workspace hooks and how they protect code quality"
 
 # Workspace Hooks — Setup Guide
 
-CalendarGenie uses workspace hooks to enforce security and consistency standards automatically. Hooks run deterministically at key lifecycle points and can block or warn about problematic code patterns.
+OpenCalendar uses workspace hooks to enforce security and consistency standards automatically. Hooks run deterministically at key lifecycle points and can block or warn about problematic code patterns.
 
 ## Active Hooks
 

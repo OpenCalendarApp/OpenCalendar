@@ -1,9 +1,9 @@
 ---
 name: Custom Agents Overview
-description: "List of specialized agents for CalendarGenie development"
+description: "List of specialized agents for OpenCalendar development"
 ---
 
-# Custom Agents — CalendarGenie
+# Custom Agents — OpenCalendar
 
 This directory contains specialized agents for the Session Scheduler monorepo. Each agent has a focused role and restricted toolset to guide development workflows.
 

@@ -1,10 +1,10 @@
 ---
-name: CalendarGenie AI Customizations — Complete Setup Summary
+name: OpenCalendar AI Customizations — Complete Setup Summary
 ---
 
-# 🎯 CalendarGenie AI Customizations — Complete Setup
+# 🎯 OpenCalendar AI Customizations — Complete Setup
 
-This document summarizes all the AI development tools, agents, prompts, hooks, and instructions that have been configured for the CalendarGenie monorepo.
+This document summarizes all the AI development tools, agents, prompts, hooks, and instructions that have been configured for the OpenCalendar monorepo.
 
 ---
 

@@ -2,7 +2,7 @@
 name: AI Tools Quick Reference
 ---
 
-# 🎯 CalendarGenie AI Tools — Quick Reference Card
+# 🎯 OpenCalendar AI Tools — Quick Reference Card
 
 ## One-Line Summaries
 
@@ -223,4 +223,4 @@ Time: 15-20 minutes ← **Recommended**
 
 **Version:** March 2026  
 **Updated:** After Task Orchestrator agent setup  
-**For:** CalendarGenie Session Scheduler Team
+**For:** OpenCalendar Session Scheduler Team

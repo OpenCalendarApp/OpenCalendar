@@ -11,7 +11,7 @@
             "server": "devtestwestus3sql.postgres.database.azure.com",
             "port": 5432,
             "driver": "PostgreSQL",
-            "name": "CalendarGenie",
+            "name": "OpenCalendar",
             "group": "Azure",
             "database": "mailgeniedb",
             "username": "mailgenie_admin",
