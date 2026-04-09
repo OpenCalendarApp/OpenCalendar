@@ -267,7 +267,7 @@ async function processBookingEmailJob(
     throw new Error('EMAIL_QUEUE_FORCE_FAILURE is enabled');
   }
 
-  const fromEmail = process.env.EMAIL_FROM ?? 'no-reply@calendar-genie.local';
+  const fromEmail = process.env.EMAIL_FROM ?? 'no-reply@opencalendar.local';
   const provider = resolveEmailProvider(process.env.EMAIL_PROVIDER);
   const content = buildBookingEmailContent(payload);
   const recipient = payload.clientEmail;

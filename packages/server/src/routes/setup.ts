@@ -8,7 +8,7 @@ import {
   type SetupStatusResponse,
   type User,
   type UserRecord
-} from '@calendar-genie/shared';
+} from '@opencalendar/shared';
 
 import { pool } from '../db/pool.js';
 import { signToken } from '../middleware/auth.js';

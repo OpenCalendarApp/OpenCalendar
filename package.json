@@ -1,12 +1,12 @@
 {
-  "name": "calendar-genie",
+  "name": "opencalendar",
   "version": "2026-03-30-1",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run build -w @calendar-genie/shared && concurrently -n shared,server,client -c blue,green,magenta \"npm run dev -w @calendar-genie/shared\" \"npm run dev -w @calendar-genie/server\" \"npm run dev -w @calendar-genie/client\"",
+    "dev": "npm run build -w @opencalendar/shared && concurrently -n shared,server,client -c blue,green,magenta \"npm run dev -w @opencalendar/shared\" \"npm run dev -w @opencalendar/server\" \"npm run dev -w @opencalendar/client\"",
     "dev:setup": "npm run docker:up && npm run db:migrate && npm run db:seed",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
@@ -16,8 +16,8 @@
     "bump:major": "npm run bump -- --force major",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
-    "db:migrate": "npm run db:migrate -w @calendar-genie/server",
-    "db:seed": "npm run db:seed -w @calendar-genie/server",
+    "db:migrate": "npm run db:migrate -w @opencalendar/server",
+    "db:seed": "npm run db:seed -w @opencalendar/server",
     "db:backup": "bash scripts/db-backup.sh",
     "db:restore": "bash scripts/db-restore.sh",
     "loadtest:read": "node scripts/load-test.mjs read-project",

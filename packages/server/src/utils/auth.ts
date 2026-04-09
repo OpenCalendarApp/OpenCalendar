@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-import type { JwtPayload } from '@calendar-genie/shared';
+import type { JwtPayload } from '@opencalendar/shared';
 
 const USER_PASSWORD_COST = 12;
 const PROJECT_PASSWORD_COST = 10;

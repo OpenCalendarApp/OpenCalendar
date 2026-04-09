@@ -19,7 +19,7 @@ import {
   type WaitlistEntry,
   type WaitlistJoinResponse,
   type RescheduleResponse
-} from '@calendar-genie/shared';
+} from '@opencalendar/shared';
 import type { PoolClient } from 'pg';
 
 import { pool } from '../db/pool.js';

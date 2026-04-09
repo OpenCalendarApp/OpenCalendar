@@ -1,5 +1,5 @@
 location: eastus
-name: calendar-genie-client
+name: opencalendar-client
 type: Microsoft.App/containerApps
 
 properties:

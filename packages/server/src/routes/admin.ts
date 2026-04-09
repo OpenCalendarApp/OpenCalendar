@@ -16,7 +16,7 @@ import {
   type AdminUserSummary,
   type UpdateAdminOidcSsoConfigRequest,
   type UserRole
-} from '@calendar-genie/shared';
+} from '@opencalendar/shared';
 
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';

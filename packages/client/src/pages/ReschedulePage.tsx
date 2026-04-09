@@ -6,7 +6,7 @@ import type {
   CancelBookingResponse,
   PublicSlotInfo,
   RescheduleResponse
-} from '@calendar-genie/shared';
+} from '@opencalendar/shared';
 
 import { apiPublicFetch, buildApiUrl } from '../api/client.js';
 import { BrandLogo } from '../components/BrandLogo.js';
@@ -161,7 +161,7 @@ export function ReschedulePage(): JSX.Element {
 
   function downloadCalendar(token: string): void {
     const tokenPrefix = token.slice(0, 8);
-    triggerDownload(buildApiUrl(`/schedule/calendar/${token}`), `calendar-genie-${tokenPrefix}.ics`);
+    triggerDownload(buildApiUrl(`/schedule/calendar/${token}`), `opencalendar-${tokenPrefix}.ics`);
     showToast('Calendar download started.', 'info');
   }
 

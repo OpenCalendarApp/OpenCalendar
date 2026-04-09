@@ -215,18 +215,18 @@ External:
 ### Monorepo Structure
 
 ```
-calendar-genie/
+opencalendar/
 ├── package.json                 # npm workspaces root
 ├── docker-compose.yml           # Orchestration
 ├── .env.example                 # Environment template
 ├── docker/
 │   └── init.sql                 # Database schema
 ├── packages/
-│   ├── shared/                  # @calendar-genie/shared
+│   ├── shared/                  # @opencalendar/shared
 │   │   ├── package.json
 │   │   └── src/
 │   │       └── types.ts         # Shared TypeScript interfaces
-│   ├── server/                  # @calendar-genie/server
+│   ├── server/                  # @opencalendar/server
 │   │   ├── package.json
 │   │   ├── Dockerfile
 │   │   ├── tsconfig.json
@@ -246,7 +246,7 @@ calendar-genie/
 │   │       │   └── booking.ts   # Public booking, reschedule, .ics
 │   │       └── utils/
 │   │           └── ics.ts       # .ics file generator
-│   └── client/                  # @calendar-genie/client
+│   └── client/                  # @opencalendar/client
 │       ├── package.json
 │       ├── Dockerfile
 │       ├── nginx.conf           # SPA routing + API proxy
@@ -917,7 +917,7 @@ server {
 
 | Variable | Default | Required | Description |
 |----------|---------|:--------:|-------------|
-| `POSTGRES_DB` | `calendar_genie` | ✅ | Database name |
+| `POSTGRES_DB` | `opencalendar` | ✅ | Database name |
 | `POSTGRES_USER` | `ss_admin` | ✅ | DB username |
 | `POSTGRES_PASSWORD` | — | ✅ | **Change in production** |
 | `POSTGRES_PORT` | `5432` | | Host port mapping |

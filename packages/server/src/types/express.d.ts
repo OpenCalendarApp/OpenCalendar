@@ -1,4 +1,4 @@
-import type { UserRole } from '@calendar-genie/shared';
+import type { UserRole } from '@opencalendar/shared';
 
 declare global {
   namespace Express {

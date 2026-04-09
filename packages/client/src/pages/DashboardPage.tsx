@@ -6,7 +6,7 @@ import type {
   MicrosoftCalendarStatusResponse,
   ProjectSummary,
   ProjectsResponse
-} from '@calendar-genie/shared';
+} from '@opencalendar/shared';
 
 import { apiFetch } from '../api/client.js';
 import { CreateProjectModal } from '../components/CreateProjectModal.js';

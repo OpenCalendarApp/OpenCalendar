@@ -8,7 +8,7 @@ import type {
   ProjectDetail,
   TimeBlocksResponse,
   UserRole
-} from '@calendar-genie/shared';
+} from '@opencalendar/shared';
 
 import { apiFetch } from '../api/client.js';
 import { TimeZoneSelect } from './TimeZoneSelect.js';

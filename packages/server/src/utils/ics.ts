@@ -47,7 +47,7 @@ function foldLine(line: string, maxLength = 75): string[] {
 }
 
 export function createCalendarEvent(input: CalendarInput): string {
-  const uid = `booking-${crypto.randomUUID()}@calendar-genie`;
+  const uid = `booking-${crypto.randomUUID()}@opencalendar`;
   const now = toIcsDate(new Date().toISOString());
   const start = toIcsDate(input.startIso);
   const end = toIcsDate(input.endIso);

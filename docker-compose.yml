@@ -1,10 +1,10 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: calendar-genie-postgres
+    container_name: opencalendar-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-calendar_genie}
+      POSTGRES_DB: ${POSTGRES_DB:-opencalendar}
       POSTGRES_USER: ${POSTGRES_USER:-ss_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
     ports:
@@ -13,7 +13,7 @@ services:
       - pg_data:/var/lib/postgresql/data
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ss_admin} -d ${POSTGRES_DB:-calendar_genie}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ss_admin} -d ${POSTGRES_DB:-opencalendar}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -22,11 +22,11 @@ services:
     build:
       context: .
       dockerfile: packages/server/Dockerfile
-    container_name: calendar-genie-server
+    container_name: opencalendar-server
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://ss_admin:change-me@postgres:5432/calendar_genie}
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://ss_admin:change-me@postgres:5432/opencalendar}
       JWT_SECRET: ${JWT_SECRET:-development-secret}
       PORT: ${PORT:-4000}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
@@ -38,7 +38,7 @@ services:
       JOB_QUEUE_MAX_ATTEMPTS: ${JOB_QUEUE_MAX_ATTEMPTS:-5}
       JOB_QUEUE_BACKOFF_BASE_MS: ${JOB_QUEUE_BACKOFF_BASE_MS:-5000}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
-      EMAIL_FROM: ${EMAIL_FROM:-no-reply@calendar-genie.local}
+      EMAIL_FROM: ${EMAIL_FROM:-no-reply@opencalendar.local}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       BOOKING_PORTAL_BASE_URL: ${BOOKING_PORTAL_BASE_URL:-http://localhost:3000}
       EMAIL_QUEUE_FORCE_FAILURE: ${EMAIL_QUEUE_FORCE_FAILURE:-false}
@@ -58,7 +58,7 @@ services:
     build:
       context: .
       dockerfile: packages/client/Dockerfile
-    container_name: calendar-genie-client
+    container_name: opencalendar-client
     restart: unless-stopped
     environment:
       API_UPSTREAM: ${API_UPSTREAM:-http://server:4000}

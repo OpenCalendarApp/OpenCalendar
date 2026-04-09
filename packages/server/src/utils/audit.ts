@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 
-import type { UserRole } from '@calendar-genie/shared';
+import type { UserRole } from '@opencalendar/shared';
 
 import { pool } from '../db/pool.js';
 

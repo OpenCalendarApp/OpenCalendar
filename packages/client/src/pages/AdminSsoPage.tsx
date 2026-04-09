@@ -4,7 +4,7 @@ import type {
   AdminOidcSsoConfig,
   AdminOidcSsoConfigResponse,
   UpdateAdminOidcSsoConfigRequest
-} from '@calendar-genie/shared';
+} from '@opencalendar/shared';
 
 import { apiFetch } from '../api/client.js';
 import { useToast } from '../context/ToastContext.js';

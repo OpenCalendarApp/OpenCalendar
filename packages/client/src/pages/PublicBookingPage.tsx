@@ -7,7 +7,7 @@ import type {
   PublicSlotInfo,
   PublicWaitlistSlotInfo,
   WaitlistJoinResponse
-} from '@calendar-genie/shared';
+} from '@opencalendar/shared';
 
 import { apiPublicFetch, buildApiUrl } from '../api/client.js';
 import { BrandLogo } from '../components/BrandLogo.js';
@@ -244,7 +244,7 @@ export function PublicBookingPage(): JSX.Element {
     const tokenPrefix = bookingToken.slice(0, 8);
     triggerDownload(
       buildApiUrl(`/schedule/calendar/${bookingToken}`),
-      `calendar-genie-${tokenPrefix}.ics`
+      `opencalendar-${tokenPrefix}.ics`
     );
     showToast('Calendar download started.', 'info');
   }

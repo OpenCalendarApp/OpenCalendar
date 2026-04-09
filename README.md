@@ -1,4 +1,4 @@
-# Calendar Genie
+# OpenCalendar
 
 Multi-tenant session scheduling platform with a React/Vite frontend, Express API, PostgreSQL, and Microsoft Calendar integration.
 
@@ -17,7 +17,7 @@ Multi-tenant session scheduling platform with a React/Vite frontend, Express API
 - Frontend: React 18 + Vite + TypeScript
 - Backend: Express + TypeScript
 - Database: PostgreSQL 16
-- Shared contracts: `@calendar-genie/shared`
+- Shared contracts: `@opencalendar/shared`
 - Infra: Docker Compose (postgres + optional full stack)
 
 ## Monorepo Layout

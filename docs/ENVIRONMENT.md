@@ -18,14 +18,14 @@ cp .env.example .env
 
 | Variable | Default | Required | Description |
 | --- | --- | --- | --- |
-| `POSTGRES_DB` | `calendar_genie` | No | Database name used by local scripts, connection-string fallback, and Docker Postgres initialization. |
+| `POSTGRES_DB` | `opencalendar` | No | Database name used by local scripts, connection-string fallback, and Docker Postgres initialization. |
 | `POSTGRES_USER` | `ss_admin` | No | Database user used by local scripts, fallback URL construction, and Docker Postgres initialization. |
 | `POSTGRES_PASSWORD` | `change-me` | No (dev), Yes (prod) | Database password for local fallback URL construction and Docker Postgres initialization. |
 | `POSTGRES_PORT` | `5432` | No | PostgreSQL port used by host mapping and fallback URL construction. |
 | `POSTGRES_HOST` | `localhost` | No | PostgreSQL host used by fallback URL construction for local Node runtime. |
 | `DATABASE_SSLMODE` | empty | No | Optional `sslmode` appended to fallback `DATABASE_URL` (for example `require`, `disable`, `verify-full`). |
 | `DATABASE_URL` | computed from `POSTGRES_*` | No | Primary DB connection string for the server and db scripts. If empty or template-like, code rebuilds it from `POSTGRES_*`. |
-| `DOCKER_DATABASE_URL` | `postgresql://ss_admin:change-me@postgres:5432/calendar_genie` (compose fallback) | No | DB connection string injected into the Docker `server` container as `DATABASE_URL`. Use `postgres` as host when containerized. |
+| `DOCKER_DATABASE_URL` | `postgresql://ss_admin:change-me@postgres:5432/opencalendar` (compose fallback) | No | DB connection string injected into the Docker `server` container as `DATABASE_URL`. Use `postgres` as host when containerized. |
 
 ## Core Server + Security
 
@@ -98,7 +98,7 @@ cp .env.example .env
 | Variable | Default | Required | Description |
 | --- | --- | --- | --- |
 | `EMAIL_PROVIDER` | `console` | No | Email transport: `console` (logs only) or `resend` (real delivery). |
-| `EMAIL_FROM` | `no-reply@calendar-genie.local` | No | Sender address for booking emails. |
+| `EMAIL_FROM` | `no-reply@opencalendar.local` | No | Sender address for booking emails. |
 | `RESEND_API_KEY` | empty | Conditional | Required when `EMAIL_PROVIDER=resend`. |
 | `BOOKING_PORTAL_BASE_URL` | `http://localhost:3000` | No | Base URL for absolute reschedule/manage links in booking emails. |
 | `EMAIL_QUEUE_FORCE_FAILURE` | `false` | No | Dev/testing flag that forces email job failure to exercise retries/lockout flows. |

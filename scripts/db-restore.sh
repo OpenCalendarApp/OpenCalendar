@@ -15,7 +15,7 @@ if [[ ! -f "$BACKUP_FILE" ]]; then
   exit 1
 fi
 
-POSTGRES_DB="${POSTGRES_DB:-calendar_genie}"
+POSTGRES_DB="${POSTGRES_DB:-opencalendar}"
 POSTGRES_USER="${POSTGRES_USER:-ss_admin}"
 
 echo "Restoring database '$POSTGRES_DB' from '$BACKUP_FILE'"

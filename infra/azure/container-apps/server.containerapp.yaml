@@ -1,5 +1,5 @@
 location: eastus
-name: calendar-genie-server
+name: opencalendar-server
 type: Microsoft.App/containerApps
 
 properties:

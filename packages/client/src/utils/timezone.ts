@@ -1,4 +1,4 @@
-const timezoneStorageKey = 'calendar_genie.preferred_timezone';
+const timezoneStorageKey = 'opencalendar.preferred_timezone';
 
 const fallbackTimeZones = [
   'UTC',

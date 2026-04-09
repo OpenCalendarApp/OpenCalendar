@@ -1,5 +1,5 @@
 {
-  "name": "@calendar-genie/server",
+  "name": "@opencalendar/server",
   "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,7 @@
     "db:seed": "npm run build && node dist/db/seed.js"
   },
   "dependencies": {
-    "@calendar-genie/shared": "0.3.0",
+    "@opencalendar/shared": "0.3.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

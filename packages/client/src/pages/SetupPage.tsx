@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
-import type { SetupInitializeResponse, SetupStatusResponse } from '@calendar-genie/shared';
+import type { SetupInitializeResponse, SetupStatusResponse } from '@opencalendar/shared';
 
 import { apiFetch } from '../api/client.js';
 import { BrandLogo } from '../components/BrandLogo.js';

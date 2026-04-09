@@ -8,7 +8,7 @@ RUN npm install
 FROM deps AS build
 COPY tsconfig.json tsconfig.base.json ./
 COPY packages ./packages
-RUN npm run build -w @calendar-genie/shared && npm run build -w @calendar-genie/server
+RUN npm run build -w @opencalendar/shared && npm run build -w @opencalendar/server
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
