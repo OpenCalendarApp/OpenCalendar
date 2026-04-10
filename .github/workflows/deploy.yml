@@ -1,0 +1,257 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+      image_tag:
+        description: 'Image tag to deploy (e.g. v2026.04.1 or git SHA)'
+        required: true
+        type: string
+  workflow_run:
+    workflows:
+      - Build and Push
+    types:
+      - completed
+    branches:
+      - main
+
+env:
+  ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
+  SERVER_IMAGE_NAME: opencalendar-server
+  CLIENT_IMAGE_NAME: opencalendar-client
+  AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  CONTAINER_APP_ENV: ${{ vars.CONTAINER_APP_ENV }}
+  SERVER_APP_NAME: opencalendar-server
+  CLIENT_APP_NAME: opencalendar-client
+  # Maximum seconds to wait for a new container app revision to reach Running state
+  REVISION_WAIT_TIMEOUT: '120'
+
+jobs:
+  deploy:
+    name: Deploy to Azure Container Apps
+    runs-on: ubuntu-latest
+    # For workflow_run trigger, only deploy when the upstream workflow succeeded
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'production' }}
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve deployment image tag
+        id: resolve
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            IMAGE_TAG="${{ inputs.image_tag }}"
+            ENVIRONMENT="${{ inputs.environment }}"
+          else
+            # workflow_run: deploy the SHA of the triggering run
+            IMAGE_TAG="${{ github.event.workflow_run.head_sha }}"
+            ENVIRONMENT="production"
+          fi
+          REVISION_SUFFIX="$(echo "${IMAGE_TAG}" | tr '.' '-' | cut -c1-32)"
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "environment=${ENVIRONMENT}" >> "$GITHUB_OUTPUT"
+          echo "revision_suffix=${REVISION_SUFFIX}" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Record previous server revision (for rollback reference)
+        id: prev_server
+        run: |
+          PREV=$(az containerapp revision list \
+            --name "${{ env.SERVER_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --query "[?properties.active==\`true\`].name | [0]" \
+            --output tsv 2>/dev/null || echo "")
+          echo "revision=${PREV}" >> "$GITHUB_OUTPUT"
+
+      - name: Record previous client revision (for rollback reference)
+        id: prev_client
+        run: |
+          PREV=$(az containerapp revision list \
+            --name "${{ env.CLIENT_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --query "[?properties.active==\`true\`].name | [0]" \
+            --output tsv 2>/dev/null || echo "")
+          echo "revision=${PREV}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy server
+        run: |
+          az containerapp update \
+            --name "${{ env.SERVER_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ env.ACR_LOGIN_SERVER }}/${{ env.SERVER_IMAGE_NAME }}:${{ steps.resolve.outputs.image_tag }}" \
+            --revision-suffix "${{ steps.resolve.outputs.revision_suffix }}"
+
+      - name: Deploy client
+        run: |
+          az containerapp update \
+            --name "${{ env.CLIENT_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ env.ACR_LOGIN_SERVER }}/${{ env.CLIENT_IMAGE_NAME }}:${{ steps.resolve.outputs.image_tag }}" \
+            --revision-suffix "${{ steps.resolve.outputs.revision_suffix }}"
+
+      - name: Wait for server revision to be active
+        run: |
+          echo "Waiting for server revision to become active..."
+          TIMEOUT="${{ env.REVISION_WAIT_TIMEOUT }}"
+          ELAPSED=0
+          while true; do
+            STATUS=$(az containerapp revision show \
+              --name "${{ env.SERVER_APP_NAME }}" \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --revision "${{ env.SERVER_APP_NAME }}--${{ steps.resolve.outputs.revision_suffix }}" \
+              --query "properties.runningState" --output tsv 2>/dev/null || echo "Unknown")
+            echo "  Server revision state: ${STATUS}"
+            if [[ "${STATUS}" == "Running" ]]; then
+              echo "Server revision is running."
+              break
+            fi
+            if [[ ${ELAPSED} -ge ${TIMEOUT} ]]; then
+              echo "Timed out waiting for server revision to become active."
+              exit 1
+            fi
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+
+      - name: Wait for client revision to be active
+        run: |
+          echo "Waiting for client revision to become active..."
+          TIMEOUT="${{ env.REVISION_WAIT_TIMEOUT }}"
+          ELAPSED=0
+          while true; do
+            STATUS=$(az containerapp revision show \
+              --name "${{ env.CLIENT_APP_NAME }}" \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --revision "${{ env.CLIENT_APP_NAME }}--${{ steps.resolve.outputs.revision_suffix }}" \
+              --query "properties.runningState" --output tsv 2>/dev/null || echo "Unknown")
+            echo "  Client revision state: ${STATUS}"
+            if [[ "${STATUS}" == "Running" ]]; then
+              echo "Client revision is running."
+              break
+            fi
+            if [[ ${ELAPSED} -ge ${TIMEOUT} ]]; then
+              echo "Timed out waiting for client revision to become active."
+              exit 1
+            fi
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+
+      - name: Health check — server liveness
+        run: |
+          SERVER_FQDN=$(az containerapp show \
+            --name "${{ env.SERVER_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)
+          echo "Checking server liveness at https://${SERVER_FQDN}/api/health/live"
+          ATTEMPTS=0
+          until curl --silent --fail "https://${SERVER_FQDN}/api/health/live"; do
+            ATTEMPTS=$((ATTEMPTS + 1))
+            if [[ ${ATTEMPTS} -ge 10 ]]; then
+              echo "Server liveness check failed after ${ATTEMPTS} attempts."
+              exit 1
+            fi
+            echo "  Retry ${ATTEMPTS}/10 — waiting 15s..."
+            sleep 15
+          done
+          echo "Server liveness check passed."
+
+      - name: Health check — server readiness
+        run: |
+          SERVER_FQDN=$(az containerapp show \
+            --name "${{ env.SERVER_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)
+          echo "Checking server readiness at https://${SERVER_FQDN}/api/health/ready"
+          ATTEMPTS=0
+          until curl --silent --fail "https://${SERVER_FQDN}/api/health/ready"; do
+            ATTEMPTS=$((ATTEMPTS + 1))
+            if [[ ${ATTEMPTS} -ge 10 ]]; then
+              echo "Server readiness check failed after ${ATTEMPTS} attempts."
+              exit 1
+            fi
+            echo "  Retry ${ATTEMPTS}/10 — waiting 15s..."
+            sleep 15
+          done
+          echo "Server readiness check passed."
+
+      - name: Health check — client
+        run: |
+          CLIENT_FQDN=$(az containerapp show \
+            --name "${{ env.CLIENT_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)
+          echo "Checking client at https://${CLIENT_FQDN}/"
+          ATTEMPTS=0
+          until curl --silent --fail "https://${CLIENT_FQDN}/"; do
+            ATTEMPTS=$((ATTEMPTS + 1))
+            if [[ ${ATTEMPTS} -ge 10 ]]; then
+              echo "Client health check failed after ${ATTEMPTS} attempts."
+              exit 1
+            fi
+            echo "  Retry ${ATTEMPTS}/10 — waiting 15s..."
+            sleep 15
+          done
+          echo "Client health check passed."
+
+      - name: Rollback on failure — server
+        if: failure() && steps.prev_server.outputs.revision != ''
+        run: |
+          echo "Rolling back server to revision: ${{ steps.prev_server.outputs.revision }}"
+          az containerapp revision activate \
+            --name "${{ env.SERVER_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --revision "${{ steps.prev_server.outputs.revision }}"
+          az containerapp ingress traffic set \
+            --name "${{ env.SERVER_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --revision-weight "${{ steps.prev_server.outputs.revision }}=100"
+          echo "Server rollback complete."
+
+      - name: Rollback on failure — client
+        if: failure() && steps.prev_client.outputs.revision != ''
+        run: |
+          echo "Rolling back client to revision: ${{ steps.prev_client.outputs.revision }}"
+          az containerapp revision activate \
+            --name "${{ env.CLIENT_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --revision "${{ steps.prev_client.outputs.revision }}"
+          az containerapp ingress traffic set \
+            --name "${{ env.CLIENT_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --revision-weight "${{ steps.prev_client.outputs.revision }}=100"
+          echo "Client rollback complete."
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "## Deployment Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Environment** | ${{ steps.resolve.outputs.environment }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image tag** | \`${{ steps.resolve.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Revision suffix** | \`${{ steps.resolve.outputs.revision_suffix }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Server** | ✅ Healthy |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Client** | ✅ Healthy |" >> "$GITHUB_STEP_SUMMARY"
