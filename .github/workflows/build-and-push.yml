@@ -1,0 +1,90 @@
+name: Build and Push
+
+on:
+  push:
+    tags:
+      - 'v2026.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag override (defaults to git SHA)'
+        required: false
+        type: string
+
+env:
+  ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
+  SERVER_IMAGE_NAME: opencalendar-server
+  CLIENT_IMAGE_NAME: opencalendar-client
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve image tags
+        id: tags
+        run: |
+          SHA_TAG="${{ github.sha }}"
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION_TAG="${{ github.ref_name }}"
+          elif [[ -n "${{ inputs.tag }}" ]]; then
+            VERSION_TAG="${{ inputs.tag }}"
+          else
+            VERSION_TAG="${SHA_TAG}"
+          fi
+          echo "sha_tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version_tag=${VERSION_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push server image
+        run: |
+          IMAGE="${{ env.ACR_LOGIN_SERVER }}/${{ env.SERVER_IMAGE_NAME }}"
+          SHA_TAG="${{ steps.tags.outputs.sha_tag }}"
+          VERSION_TAG="${{ steps.tags.outputs.version_tag }}"
+          docker build \
+            --file packages/server/Dockerfile \
+            --tag "${IMAGE}:${SHA_TAG}" \
+            --tag "${IMAGE}:${VERSION_TAG}" \
+            --tag "${IMAGE}:latest" \
+            .
+          docker push "${IMAGE}:${SHA_TAG}"
+          docker push "${IMAGE}:${VERSION_TAG}"
+          docker push "${IMAGE}:latest"
+
+      - name: Build and push client image
+        run: |
+          IMAGE="${{ env.ACR_LOGIN_SERVER }}/${{ env.CLIENT_IMAGE_NAME }}"
+          SHA_TAG="${{ steps.tags.outputs.sha_tag }}"
+          VERSION_TAG="${{ steps.tags.outputs.version_tag }}"
+          docker build \
+            --file packages/client/Dockerfile \
+            --tag "${IMAGE}:${SHA_TAG}" \
+            --tag "${IMAGE}:${VERSION_TAG}" \
+            --tag "${IMAGE}:latest" \
+            .
+          docker push "${IMAGE}:${SHA_TAG}"
+          docker push "${IMAGE}:${VERSION_TAG}"
+          docker push "${IMAGE}:latest"
+
+      - name: Summary
+        run: |
+          echo "## Build & Push Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Image | Tags |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| \`${{ env.ACR_LOGIN_SERVER }}/${{ env.SERVER_IMAGE_NAME }}\` | \`${{ steps.tags.outputs.sha_tag }}\`, \`${{ steps.tags.outputs.version_tag }}\`, \`latest\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| \`${{ env.ACR_LOGIN_SERVER }}/${{ env.CLIENT_IMAGE_NAME }}\` | \`${{ steps.tags.outputs.sha_tag }}\`, \`${{ steps.tags.outputs.version_tag }}\`, \`latest\` |" >> "$GITHUB_STEP_SUMMARY"
