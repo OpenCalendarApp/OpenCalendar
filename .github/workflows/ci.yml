@@ -32,8 +32,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Typecheck shared
-        run: npx tsc --noEmit -p packages/shared/tsconfig.json
+      - name: Build shared (required by server & client)
+        run: npx tsc -b packages/shared/tsconfig.json --force
 
       - name: Typecheck server
         run: npx tsc --noEmit -p packages/server/tsconfig.json
