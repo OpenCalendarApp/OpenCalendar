@@ -45,7 +45,8 @@ function omitPasswordHash(user: UserRecord): User {
     last_name: user.last_name,
     phone: user.phone,
     role: user.role,
-    created_at: user.created_at
+    created_at: user.created_at,
+    onboarding_completed_at: (user as User).onboarding_completed_at ?? null
   };
 }
 
