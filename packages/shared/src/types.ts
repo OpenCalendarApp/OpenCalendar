@@ -18,6 +18,7 @@ export interface User {
   phone: string | null;
   role: UserRole;
   created_at: string;
+  onboarding_completed_at: string | null;
 }
 
 export interface UserRecord extends User {
@@ -334,4 +335,16 @@ export interface WaitlistJoinResponse {
   waitlist_entry: WaitlistEntry;
   message: string;
   already_exists: boolean;
+}
+
+export interface OnboardingStepStatus {
+  calendar_connected: boolean;
+  has_project: boolean;
+  has_time_block: boolean;
+  has_copied_link: boolean;
+}
+
+export interface OnboardingStatusResponse {
+  completed: boolean;
+  steps: OnboardingStepStatus;
 }

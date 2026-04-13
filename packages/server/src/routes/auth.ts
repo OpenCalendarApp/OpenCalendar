@@ -18,6 +18,7 @@ import {
   type MicrosoftCalendarAuthUrlResponse,
   type MicrosoftCalendarStatusResponse,
   type OidcSsoAuthUrlResponse,
+  type OnboardingStatusResponse,
   type RefreshTokenRequest,
   type RegisterRequest,
   type ResetPasswordRequest,
@@ -827,7 +828,8 @@ router.get('/me', authMiddleware, asyncHandler(async (req, res) => {
       u.last_name,
       u.phone,
       u.role,
-      u.created_at
+      u.created_at,
+      u.onboarding_completed_at
     FROM users u
     INNER JOIN tenants t ON t.id = u.tenant_id
     WHERE u.id = $1
@@ -1071,6 +1073,80 @@ router.delete('/microsoft/connection', authMiddleware, requireRole(['engineer'])
   res.status(204).send();
 }));
 
+// ─── Onboarding ────────────────────────────────────────────────────────────
+
+router.get('/onboarding/status', authMiddleware, asyncHandler(async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
+  const userId = req.user.userId;
+  const tenantId = req.user.tenantId;
+
+  // Check if user already completed onboarding
+  const userResult = await pool.query<{ onboarding_completed_at: string | null }>(
+    'SELECT onboarding_completed_at FROM users WHERE id = $1 AND tenant_id = $2',
+    [userId, tenantId]
+  );
+
+  if (userResult.rows[0]?.onboarding_completed_at) {
+    const response: OnboardingStatusResponse = {
+      completed: true,
+      steps: { calendar_connected: true, has_project: true, has_time_block: true, has_copied_link: true }
+    };
+    res.json(response);
+    return;
+  }
+
+  // Check each step
+  const calendarResult = await pool.query<{ exists: boolean }>(
+    'SELECT EXISTS(SELECT 1 FROM microsoft_calendar_connections WHERE user_id = $1 AND app_tenant_id = $2) AS exists',
+    [userId, tenantId]
+  );
+
+  const projectResult = await pool.query<{ exists: boolean }>(
+    'SELECT EXISTS(SELECT 1 FROM projects WHERE created_by = $1 AND tenant_id = $2) AS exists',
+    [userId, tenantId]
+  );
+
+  const timeBlockResult = await pool.query<{ exists: boolean }>(
+    `SELECT EXISTS(
+      SELECT 1 FROM time_blocks tb
+      INNER JOIN projects p ON p.id = tb.project_id
+      WHERE p.created_by = $1 AND tb.tenant_id = $2
+    ) AS exists`,
+    [userId, tenantId]
+  );
+
+  const steps = {
+    calendar_connected: calendarResult.rows[0]?.exists ?? false,
+    has_project: projectResult.rows[0]?.exists ?? false,
+    has_time_block: timeBlockResult.rows[0]?.exists ?? false,
+    has_copied_link: false
+  };
+
+  const response: OnboardingStatusResponse = {
+    completed: false,
+    steps
+  };
+  res.json(response);
+}));
+
+router.post('/onboarding/complete', authMiddleware, asyncHandler(async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
+  await pool.query(
+    'UPDATE users SET onboarding_completed_at = NOW() WHERE id = $1 AND tenant_id = $2 AND onboarding_completed_at IS NULL',
+    [req.user.userId, req.user.tenantId]
+  );
+
+  res.json({ message: 'Onboarding completed' });
+}));
+
 // ─── Password Reset ────────────────────────────────────────────────────────
 
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
@@ -1209,7 +1285,8 @@ function omitPasswordHash(user: UserRecord): User {
     last_name: user.last_name,
     phone: user.phone,
     role: user.role,
-    created_at: user.created_at
+    created_at: user.created_at,
+    onboarding_completed_at: (user as User).onboarding_completed_at ?? null
   };
 }
 
