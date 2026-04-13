@@ -94,6 +94,9 @@ DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE IF EXISTS users
 ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'pm', 'engineer'));
 
+ALTER TABLE IF EXISTS users
+ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS projects (
   id SERIAL PRIMARY KEY,
   tenant_id INTEGER NOT NULL DEFAULT 1 REFERENCES tenants(id),

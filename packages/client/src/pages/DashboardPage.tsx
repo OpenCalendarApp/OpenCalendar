@@ -10,6 +10,7 @@ import type {
 
 import { apiFetch } from '../api/client.js';
 import { CreateProjectModal } from '../components/CreateProjectModal.js';
+import { OnboardingWizard } from '../components/OnboardingWizard.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useToast } from '../context/ToastContext.js';
 
@@ -25,6 +26,7 @@ export function DashboardPage(): JSX.Element {
   const [calendarStatus, setCalendarStatus] = useState<MicrosoftCalendarStatusResponse | null>(null);
   const [calendarPending, setCalendarPending] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(() => user?.onboarding_completed_at === null || user?.onboarding_completed_at === undefined);
   const isEngineer = user?.role === 'engineer';
   const canManageProjects = user?.role === 'pm' || user?.role === 'admin';
 
@@ -147,6 +149,20 @@ export function DashboardPage(): JSX.Element {
         <div className="detail-card status-card">
           <p className="error">{error}</p>
         </div>
+      ) : null}
+
+      {showOnboarding ? (
+        <OnboardingWizard
+          onComplete={() => setShowOnboarding(false)}
+          onCreateProject={() => setIsCreateModalOpen(true)}
+          onAddTimeBlock={() => {
+            const firstProject = projects[0];
+            if (firstProject) {
+              navigate(`/projects/${firstProject.id}`);
+            }
+          }}
+          shareLink={projects[0]?.share_token ?? null}
+        />
       ) : null}
 
       {isLoading ? (
