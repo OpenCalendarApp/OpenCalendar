@@ -15,6 +15,8 @@ import type {
   numericIdParamsSchema,
   refreshTokenSchema,
   registerSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   rescheduleBookingSchema,
   shareTokenParamsSchema,
   setupInitializeSchema,
@@ -52,3 +54,6 @@ export type SetupInitializeRequest = z.infer<typeof setupInitializeSchema>;
 export type BookSlotRequest = z.infer<typeof bookSlotSchema>;
 export type JoinWaitlistRequest = z.infer<typeof joinWaitlistSchema>;
 export type RescheduleBookingRequest = z.infer<typeof rescheduleBookingSchema>;
+
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;

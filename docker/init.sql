@@ -630,6 +630,21 @@ BEGIN
   END IF;
 END $$;
 
+-- ─── password_reset_tokens ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id BIGSERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1 REFERENCES tenants(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_tenant ON password_reset_tokens(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash);
+
 CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_users_tenant_active ON users(tenant_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_projects_tenant_id ON projects(tenant_id);
@@ -764,6 +779,7 @@ ALTER TABLE tenant_oidc_sso_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE microsoft_calendar_connections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE microsoft_calendar_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE password_reset_tokens ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_scoped_tenants ON tenants;
 CREATE POLICY tenant_scoped_tenants
@@ -856,5 +872,11 @@ WITH CHECK (app_current_tenant_id() IS NULL OR app_tenant_id = app_current_tenan
 DROP POLICY IF EXISTS tenant_scoped_microsoft_calendar_events ON microsoft_calendar_events;
 CREATE POLICY tenant_scoped_microsoft_calendar_events
 ON microsoft_calendar_events
+USING (app_current_tenant_id() IS NULL OR tenant_id = app_current_tenant_id())
+WITH CHECK (app_current_tenant_id() IS NULL OR tenant_id = app_current_tenant_id());
+
+DROP POLICY IF EXISTS tenant_scoped_password_reset_tokens ON password_reset_tokens;
+CREATE POLICY tenant_scoped_password_reset_tokens
+ON password_reset_tokens
 USING (app_current_tenant_id() IS NULL OR tenant_id = app_current_tenant_id())
 WITH CHECK (app_current_tenant_id() IS NULL OR tenant_id = app_current_tenant_id());

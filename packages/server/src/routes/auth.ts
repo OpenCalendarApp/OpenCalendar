@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { Router, type Response } from 'express';
 
 import {
@@ -7,8 +7,11 @@ import {
   logoutSchema,
   refreshTokenSchema,
   registerSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   type AuthResponse,
   type EngineersResponse,
+  type ForgotPasswordRequest,
   type LoginRequest,
   type LogoutRequest,
   type MeResponse,
@@ -17,12 +20,14 @@ import {
   type OidcSsoAuthUrlResponse,
   type RefreshTokenRequest,
   type RegisterRequest,
+  type ResetPasswordRequest,
   type User,
   type UserRecord
 } from '@opencalendar/shared';
 
 import { authMiddleware, requireRole, signToken } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { publicWriteRateLimiter } from '../middleware/rateLimit.js';
 import { pool } from '../db/pool.js';
 import {
   buildMicrosoftAuthorizeUrl,
@@ -45,6 +50,7 @@ import {
   verifyOidcSsoState
 } from '../utils/oidcSso.js';
 import { hashUserPassword, verifyPassword } from '../utils/auth.js';
+import { enqueuePasswordResetEmailJob } from '../jobs/emailNotifications.js';
 import {
   buildRefreshTokenExpiresAt,
   generateRefreshToken,
@@ -1063,6 +1069,134 @@ router.delete('/microsoft/connection', authMiddleware, requireRole(['engineer'])
   }
 
   res.status(204).send();
+}));
+
+// ─── Password Reset ────────────────────────────────────────────────────────
+
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+const FORGOT_PASSWORD_MAX_PER_HOUR = 3;
+
+function hashResetToken(rawToken: string): string {
+  return createHash('sha256').update(rawToken).digest('hex');
+}
+
+function resolvePasswordResetBaseUrl(): string {
+  const origin = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').trim().replace(/\/+$/, '');
+  return `${origin}/reset-password`;
+}
+
+router.post('/forgot-password', publicWriteRateLimiter, asyncHandler(async (req, res) => {
+  const data: ForgotPasswordRequest = forgotPasswordSchema.parse(req.body);
+
+  // Always return generic success to prevent email enumeration
+  const genericResponse = { message: 'If an account with that email exists, a password reset link has been sent.' };
+
+  const userResult = await pool.query<{ id: number; tenant_id: number; first_name: string; is_active: boolean }>(
+    'SELECT id, tenant_id, first_name, is_active FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1',
+    [data.email]
+  );
+
+  const user = userResult.rows[0];
+  if (!user || !user.is_active) {
+    res.json(genericResponse);
+    return;
+  }
+
+  // Rate-limit: max N requests per email per hour
+  const recentCount = await pool.query<{ count: string }>(
+    `SELECT COUNT(*) AS count FROM password_reset_tokens
+     WHERE user_id = $1 AND created_at > NOW() - INTERVAL '1 hour'`,
+    [user.id]
+  );
+
+  if (Number(recentCount.rows[0]?.count ?? 0) >= FORGOT_PASSWORD_MAX_PER_HOUR) {
+    res.json(genericResponse);
+    return;
+  }
+
+  // Invalidate any existing unused tokens for this user
+  await pool.query(
+    `UPDATE password_reset_tokens SET used_at = NOW()
+     WHERE user_id = $1 AND used_at IS NULL`,
+    [user.id]
+  );
+
+  // Generate new token
+  const rawToken = randomBytes(32).toString('hex');
+  const tokenHash = hashResetToken(rawToken);
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
+
+  await pool.query(
+    `INSERT INTO password_reset_tokens (tenant_id, user_id, token_hash, expires_at)
+     VALUES ($1, $2, $3, $4)`,
+    [user.tenant_id, user.id, tokenHash, expiresAt.toISOString()]
+  );
+
+  // Queue email
+  const resetUrl = `${resolvePasswordResetBaseUrl()}/${rawToken}`;
+  enqueuePasswordResetEmailJob({
+    recipientEmail: data.email,
+    recipientFirstName: user.first_name,
+    resetUrl
+  });
+
+  res.json(genericResponse);
+}));
+
+router.post('/reset-password', publicWriteRateLimiter, asyncHandler(async (req, res) => {
+  const data: ResetPasswordRequest = resetPasswordSchema.parse(req.body);
+
+  const tokenHash = hashResetToken(data.token);
+
+  const tokenResult = await pool.query<{ id: number; user_id: number; expires_at: string; used_at: string | null }>(
+    `SELECT id, user_id, expires_at, used_at FROM password_reset_tokens
+     WHERE token_hash = $1
+     LIMIT 1`,
+    [tokenHash]
+  );
+
+  const tokenRow = tokenResult.rows[0];
+  if (!tokenRow) {
+    res.status(400).json({ error: 'Invalid or expired reset token' });
+    return;
+  }
+
+  if (tokenRow.used_at) {
+    res.status(400).json({ error: 'This reset token has already been used' });
+    return;
+  }
+
+  if (new Date(tokenRow.expires_at) < new Date()) {
+    res.status(400).json({ error: 'This reset token has expired' });
+    return;
+  }
+
+  // Update password and mark token as used in a transaction
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const passwordHash = await hashUserPassword(data.password);
+    await client.query(
+      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      [passwordHash, tokenRow.user_id]
+    );
+
+    await client.query(
+      'UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1',
+      [tokenRow.id]
+    );
+
+    await client.query('COMMIT');
+  } catch {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Unable to reset password' });
+    return;
+  } finally {
+    client.release();
+  }
+
+  res.json({ message: 'Password has been reset successfully' });
 }));
 
 function omitPasswordHash(user: UserRecord): User {

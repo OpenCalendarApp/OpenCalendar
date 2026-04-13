@@ -260,3 +260,12 @@ export const joinWaitlistSchema = bookSlotSchema;
 export const rescheduleBookingSchema = z.object({
   new_time_block_id: positiveInt
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email()
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(1),
+  password: z.string().min(8)
+});
