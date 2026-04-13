@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import type { OidcSsoAuthUrlResponse, SetupStatusResponse } from '@opencalendar/shared';
 
@@ -199,6 +199,9 @@ export function LoginPage(): JSX.Element {
           {pending ? 'Signing in...' : 'Sign in'}
         </button>
       </form>
+      <p className="hint">
+        <Link to="/forgot-password">Forgot password?</Link>
+      </p>
       <p className="hint">Seed credentials: admin@example.com or pm@example.com / password123</p>
     </div>
   );

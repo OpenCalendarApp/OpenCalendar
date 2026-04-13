@@ -1,6 +1,7 @@
 import { jobQueue, type JobRecord } from './queue.js';
 
 export const BOOKING_EMAIL_JOB_TYPE = 'booking-email';
+export const PASSWORD_RESET_EMAIL_JOB_TYPE = 'password-reset-email';
 
 export type BookingEmailJobPayload = {
   event: 'booked' | 'rescheduled' | 'cancelled' | 'waitlisted' | 'waitlist_opened';
@@ -12,6 +13,12 @@ export type BookingEmailJobPayload = {
   bookingUrl?: string;
   sessionStartIso?: string;
   sessionEndIso?: string;
+};
+
+export type PasswordResetEmailJobPayload = {
+  recipientEmail: string;
+  recipientFirstName: string;
+  resetUrl: string;
 };
 
 type EmailProvider = 'console' | 'resend';
@@ -290,11 +297,74 @@ async function processBookingEmailJob(
   });
 }
 
+function buildPasswordResetEmailContent(payload: PasswordResetEmailJobPayload): BookingEmailContent {
+  const subject = 'Password reset request';
+  const lines = [
+    `Hi ${payload.recipientFirstName},`,
+    '',
+    'We received a request to reset your password.',
+    `Reset your password: ${payload.resetUrl}`,
+    '',
+    'This link expires in 1 hour. If you did not request this, you can safely ignore this email.'
+  ];
+
+  const text = lines.join('\n');
+  const html = `
+    <p>Hi ${payload.recipientFirstName},</p>
+    <p>We received a request to reset your password.</p>
+    <p><a href="${payload.resetUrl}">Reset your password</a></p>
+    <p>This link expires in 1 hour. If you did not request this, you can safely ignore this email.</p>
+  `;
+
+  return { subject, text, html };
+}
+
+async function processPasswordResetEmailJob(
+  payload: PasswordResetEmailJobPayload,
+  job: JobRecord<PasswordResetEmailJobPayload>
+): Promise<void> {
+  const forceFailure = parseBoolean(process.env.EMAIL_QUEUE_FORCE_FAILURE, false);
+  if (forceFailure) {
+    throw new Error('EMAIL_QUEUE_FORCE_FAILURE is enabled');
+  }
+
+  const fromEmail = process.env.EMAIL_FROM ?? 'no-reply@opencalendar.local';
+  const provider = resolveEmailProvider(process.env.EMAIL_PROVIDER);
+  const content = buildPasswordResetEmailContent(payload);
+
+  if (provider === 'resend') {
+    await sendWithResend({
+      from: fromEmail,
+      to: payload.recipientEmail,
+      content
+    });
+    return;
+  }
+
+  console.log(JSON.stringify({
+    level: 'info',
+    event: 'password_reset_email_job_processed',
+    provider: 'console',
+    job_id: job.id,
+    job_attempt: job.attempts + 1,
+    from: fromEmail,
+    to: payload.recipientEmail,
+    subject: content.subject,
+    reset_url: payload.resetUrl
+  }));
+}
+
 export function registerEmailQueueHandlers(): void {
   jobQueue.registerHandler<BookingEmailJobPayload>(BOOKING_EMAIL_JOB_TYPE, processBookingEmailJob);
+  jobQueue.registerHandler<PasswordResetEmailJobPayload>(PASSWORD_RESET_EMAIL_JOB_TYPE, processPasswordResetEmailJob);
 }
 
 export function enqueueBookingEmailJob(payload: BookingEmailJobPayload): string {
   const job = jobQueue.enqueue(BOOKING_EMAIL_JOB_TYPE, payload);
+  return job.id;
+}
+
+export function enqueuePasswordResetEmailJob(payload: PasswordResetEmailJobPayload): string {
+  const job = jobQueue.enqueue(PASSWORD_RESET_EMAIL_JOB_TYPE, payload);
   return job.id;
 }
