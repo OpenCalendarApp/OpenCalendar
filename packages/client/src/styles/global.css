@@ -206,6 +206,60 @@ button {
   padding: 1rem;
 }
 
+/* ─── Advanced Settings Toggle ──────────────────────────────────────────── */
+
+.advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: #194677;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-top: 0.25rem;
+}
+
+.advanced-toggle:hover {
+  text-decoration: underline;
+}
+
+.advanced-chevron {
+  display: inline-block;
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
+}
+
+.advanced-chevron.open {
+  transform: rotate(90deg);
+}
+
+.advanced-section {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.advanced-section.expanded {
+  grid-template-rows: 1fr;
+}
+
+.advanced-section-inner {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-hint {
+  display: block;
+  font-size: 0.78rem;
+  color: #5b6c82;
+  margin-top: 0.2rem;
+}
+
 .project-detail {
   display: grid;
   gap: 1rem;

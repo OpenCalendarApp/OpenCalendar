@@ -21,6 +21,7 @@ export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalPro
   const [maxGroupSize, setMaxGroupSize] = useState(1);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -72,38 +73,6 @@ export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalPro
           </label>
 
           <label>
-            Description
-            <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              maxLength={5000}
-              rows={4}
-            />
-          </label>
-
-          <label>
-            Client Password
-            <input
-              value={signupPassword}
-              onChange={(event) => setSignupPassword(event.target.value)}
-              type="password"
-              minLength={4}
-              required
-            />
-          </label>
-
-          <label>
-            Booking Email Domain Allowlist (optional)
-            <input
-              value={bookingEmailDomainAllowlist}
-              onChange={(event) => setBookingEmailDomainAllowlist(event.target.value)}
-              type="text"
-              maxLength={255}
-              placeholder="client.com"
-            />
-          </label>
-
-          <label>
             Session Length
             <select
               value={sessionLengthMinutes}
@@ -116,31 +85,80 @@ export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalPro
             </select>
           </label>
 
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={isGroupSignup}
-              onChange={(event) => {
-                setIsGroupSignup(event.target.checked);
-                if (!event.target.checked) {
-                  setMaxGroupSize(1);
-                }
-              }}
-            />
-            Enable group signup
-          </label>
+          <button
+            type="button"
+            className="advanced-toggle"
+            onClick={() => setShowAdvanced((prev) => !prev)}
+            aria-expanded={showAdvanced}
+          >
+            <span className={`advanced-chevron ${showAdvanced ? 'open' : ''}`}>&#9654;</span>
+            Advanced Settings
+          </button>
 
-          <label>
-            Max Group Size
-            <input
-              value={maxGroupSize}
-              onChange={(event) => setMaxGroupSize(Number(event.target.value))}
-              type="number"
-              min={1}
-              disabled={!isGroupSignup}
-              required
-            />
-          </label>
+          <div className={`advanced-section ${showAdvanced ? 'expanded' : ''}`}>
+            <div className="advanced-section-inner">
+              <label>
+                Description
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  maxLength={5000}
+                  rows={4}
+                />
+              </label>
+
+              <label>
+                Client Password
+                <input
+                  value={signupPassword}
+                  onChange={(event) => setSignupPassword(event.target.value)}
+                  type="password"
+                  minLength={4}
+                  required
+                />
+                <span className="field-hint">Require a password for clients to access this project's booking page</span>
+              </label>
+
+              <label>
+                Booking Email Domain Allowlist
+                <input
+                  value={bookingEmailDomainAllowlist}
+                  onChange={(event) => setBookingEmailDomainAllowlist(event.target.value)}
+                  type="text"
+                  maxLength={255}
+                  placeholder="client.com"
+                />
+                <span className="field-hint">Restrict bookings to specific email domains (e.g., acmecorp.com)</span>
+              </label>
+
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={isGroupSignup}
+                  onChange={(event) => {
+                    setIsGroupSignup(event.target.checked);
+                    if (!event.target.checked) {
+                      setMaxGroupSize(1);
+                    }
+                  }}
+                />
+                Enable group signup
+              </label>
+
+              {isGroupSignup ? (
+                <label>
+                  Max Group Size
+                  <input
+                    value={maxGroupSize}
+                    onChange={(event) => setMaxGroupSize(Number(event.target.value))}
+                    type="number"
+                    min={1}
+                    required
+                  />
+                </label>
+              ) : null}
+            </div>
+          </div>
 
           {error ? <p className="error">{error}</p> : null}
 
