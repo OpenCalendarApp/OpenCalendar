@@ -648,6 +648,29 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_toke
 CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_tenant ON password_reset_tokens(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash);
 
+-- ───────────────────────────────────────────────────────────────────────────
+-- Scheduled booking reminders (24h + 1h before session)
+-- ───────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS scheduled_reminders (
+  id BIGSERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  type VARCHAR(10) NOT NULL CHECK (type IN ('24h', '1h')),
+  scheduled_for TIMESTAMPTZ NOT NULL,
+  sent_at TIMESTAMPTZ,
+  cancelled_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_scheduled_reminders_pending
+  ON scheduled_reminders(scheduled_for)
+  WHERE sent_at IS NULL AND cancelled_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_scheduled_reminders_booking
+  ON scheduled_reminders(booking_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_reminders_tenant
+  ON scheduled_reminders(tenant_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_users_tenant_active ON users(tenant_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_projects_tenant_id ON projects(tenant_id);
@@ -881,5 +904,12 @@ WITH CHECK (app_current_tenant_id() IS NULL OR tenant_id = app_current_tenant_id
 DROP POLICY IF EXISTS tenant_scoped_password_reset_tokens ON password_reset_tokens;
 CREATE POLICY tenant_scoped_password_reset_tokens
 ON password_reset_tokens
+USING (app_current_tenant_id() IS NULL OR tenant_id = app_current_tenant_id())
+WITH CHECK (app_current_tenant_id() IS NULL OR tenant_id = app_current_tenant_id());
+
+ALTER TABLE scheduled_reminders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_scoped_scheduled_reminders ON scheduled_reminders;
+CREATE POLICY tenant_scoped_scheduled_reminders
+ON scheduled_reminders
 USING (app_current_tenant_id() IS NULL OR tenant_id = app_current_tenant_id())
 WITH CHECK (app_current_tenant_id() IS NULL OR tenant_id = app_current_tenant_id());
