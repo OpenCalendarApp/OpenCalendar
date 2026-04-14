@@ -21,6 +21,7 @@ import {
   formatTimeInTimeZone,
   getDateKeyInTimeZone
 } from '../utils/timezone.js';
+import { useTenantBranding } from '../utils/useTenantBranding.js';
 
 function triggerDownload(url: string, filename: string): void {
   const anchor = document.createElement('a');
@@ -49,6 +50,9 @@ export function ReschedulePage(): JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const tenantUid = lookup?.project.tenant_uid;
+  const { branding, brandStyle } = useTenantBranding(tenantUid);
 
   useEffect(() => {
     if (!bookingToken) {
@@ -193,10 +197,18 @@ export function ReschedulePage(): JSX.Element {
   }
 
   return (
-    <section className="public-booking-page">
+    <section className="public-booking-page" style={brandStyle}>
       <div className="detail-card">
         <div className="public-brand-bar">
-          <BrandLogo className="brand-logo public-brand-logo" />
+          {branding?.logo_url ? (
+            <img
+              className="brand-logo public-brand-logo"
+              src={buildApiUrl(branding.logo_url.replace(/^\/api/, ''))}
+              alt="Organization logo"
+            />
+          ) : (
+            <BrandLogo className="brand-logo public-brand-logo" />
+          )}
           <p className="hint public-brand-copy">Review and update your booking below.</p>
         </div>
         <h2>Reschedule: {lookup.project.name}</h2>

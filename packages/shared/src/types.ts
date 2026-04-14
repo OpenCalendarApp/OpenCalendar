@@ -256,6 +256,7 @@ export interface PublicProjectInfo {
   session_length_minutes: number;
   is_group_signup: boolean;
   share_token: string;
+  tenant_uid: string;
 }
 
 export interface PublicSlotInfo {
@@ -347,4 +348,17 @@ export interface OnboardingStepStatus {
 export interface OnboardingStatusResponse {
   completed: boolean;
   steps: OnboardingStepStatus;
+}
+
+export interface TenantBranding {
+  logo_url: string | null;
+  accent_color: string | null;
+}
+
+export interface TenantBrandingResponse {
+  branding: TenantBranding;
+}
+
+export interface PublicTenantBrandingResponse {
+  branding: TenantBranding;
 }

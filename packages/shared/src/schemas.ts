@@ -269,3 +269,16 @@ export const resetPasswordSchema = z.object({
   token: z.string().trim().min(1),
   password: z.string().min(8)
 });
+
+export const updateBrandingSchema = z.object({
+  accent_color: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'accent_color must be a valid hex color (e.g. #194677)')
+    .optional()
+    .nullable()
+});
+
+export const tenantUidParamsSchema = z.object({
+  tenantUid: z.string().trim().uuid()
+});

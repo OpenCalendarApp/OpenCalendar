@@ -30,6 +30,7 @@ import {
   formatTimeInTimeZone,
   getDateKeyInTimeZone
 } from '../utils/timezone.js';
+import { useTenantBranding } from '../utils/useTenantBranding.js';
 
 type BookingStep = 'password' | 'slot' | 'contact' | 'confirm';
 type BookingMode = 'booking' | 'waitlist';
@@ -127,6 +128,9 @@ export function PublicBookingPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const tenantUid = projectResponse?.project.tenant_uid;
+  const { branding, brandStyle } = useTenantBranding(tenantUid);
 
   useEffect(() => {
     if (!shareToken) {
@@ -330,10 +334,18 @@ export function PublicBookingPage(): JSX.Element {
   }
 
   return (
-    <section className="public-booking-page">
+    <section className="public-booking-page" style={brandStyle}>
       <div className="detail-card">
         <div className="public-brand-bar">
-          <BrandLogo className="brand-logo public-brand-logo" />
+          {branding?.logo_url ? (
+            <img
+              className="brand-logo public-brand-logo"
+              src={buildApiUrl(branding.logo_url.replace(/^\/api/, ''))}
+              alt="Organization logo"
+            />
+          ) : (
+            <BrandLogo className="brand-logo public-brand-logo" />
+          )}
           <p className="hint public-brand-copy">Simple, professional scheduling — powered by Calendar Genie.</p>
         </div>
         <h2>{projectResponse.project.name}</h2>

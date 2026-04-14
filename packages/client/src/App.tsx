@@ -4,6 +4,7 @@ import { AdminRoute } from './components/AdminRoute.js';
 import { Layout } from './components/Layout.js';
 import { useAuth } from './context/AuthContext.js';
 import { AdminAuditPage } from './pages/AdminAuditPage.js';
+import { AdminBrandingPage } from './pages/AdminBrandingPage.js';
 import { AdminOverviewPage } from './pages/AdminOverviewPage.js';
 import { AdminSsoPage } from './pages/AdminSsoPage.js';
 import { AdminUsersPage } from './pages/AdminUsersPage.js';
@@ -59,6 +60,7 @@ export function App(): JSX.Element {
         <Route path="admin" element={<AdminRoute />}>
           <Route index element={<AdminOverviewPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
+          <Route path="branding" element={<AdminBrandingPage />} />
           <Route path="sso" element={<AdminSsoPage />} />
           <Route path="users" element={<AdminUsersPage />} />
         </Route>
