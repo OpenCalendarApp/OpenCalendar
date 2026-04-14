@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { CalendarX, ClipboardCopy, Inbox, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 
 import type {
   ProjectDetail,
@@ -405,7 +406,7 @@ export function ProjectDetailPage(): JSX.Element {
           {project.booking_email_domain_allowlist ?? 'Any domain'}
         </p>
         <button type="button" onClick={() => void handleCopyShareLink()}>
-          Copy Link
+          <ClipboardCopy size={16} /> Copy Link
         </button>
         {copyMessage ? <p className="hint">{copyMessage}</p> : null}
       </div>
@@ -526,7 +527,7 @@ export function ProjectDetailPage(): JSX.Element {
 
           <div className="button-row">
             <button type="submit" disabled={savePending}>
-              {savePending ? 'Saving...' : 'Save Changes'}
+              {savePending ? 'Saving...' : <><Save size={16} /> Save Changes</>}
             </button>
             <button
               type="button"
@@ -534,7 +535,7 @@ export function ProjectDetailPage(): JSX.Element {
               onClick={handleDeleteRequest}
               disabled={deletePending}
             >
-              {deletePending ? 'Deleting...' : 'Delete Project'}
+              {deletePending ? 'Deleting...' : <><Trash2 size={16} /> Delete Project</>}
             </button>
           </div>
         </form>
@@ -552,7 +553,7 @@ export function ProjectDetailPage(): JSX.Element {
               className="header-button"
               onClick={() => setIsAddTimeBlockModalOpen(true)}
             >
-              {isPm ? 'Add Time Blocks' : 'Add Personal Block'}
+              <Plus size={16} /> {isPm ? 'Add Time Blocks' : 'Add Personal Block'}
             </button>
           ) : null}
         </div>
@@ -561,7 +562,10 @@ export function ProjectDetailPage(): JSX.Element {
         {error ? <p className="error">{error}</p> : null}
 
         {project.time_blocks.length === 0 ? (
-          <p className="hint">No time blocks added yet.</p>
+          <div className="empty-state">
+            <CalendarX size={24} />
+            <p className="hint">No time blocks added yet.</p>
+          </div>
         ) : (
           <table className="block-table">
             <thead>
@@ -604,7 +608,7 @@ export function ProjectDetailPage(): JSX.Element {
                             onClick={() => startEditTimeBlock(block)}
                             disabled={blockDeletePendingId === block.id}
                           >
-                            Edit
+                            <Pencil size={16} /> Edit
                           </button>
                           <button
                             type="button"
@@ -612,7 +616,7 @@ export function ProjectDetailPage(): JSX.Element {
                             onClick={() => handleDeleteTimeBlockRequest(block.id)}
                             disabled={blockDeletePendingId === block.id}
                           >
-                            {blockDeletePendingId === block.id ? 'Deleting...' : 'Delete'}
+                            {blockDeletePendingId === block.id ? 'Deleting...' : <><Trash2 size={16} /> Delete</>}
                           </button>
                         </div>
                       ) : (
@@ -630,7 +634,10 @@ export function ProjectDetailPage(): JSX.Element {
       <div className="detail-card">
         <h3>Signed Up Clients</h3>
         {signupRows.length === 0 ? (
-          <p className="hint">No clients have signed up yet.</p>
+          <div className="empty-state">
+            <Inbox size={24} />
+            <p className="hint">No clients have signed up yet.</p>
+          </div>
         ) : (
           <table className="block-table">
             <thead>

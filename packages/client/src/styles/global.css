@@ -140,6 +140,12 @@ a {
   gap: 0.75rem;
 }
 
+.sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .user-badge {
   margin: 0;
   font-size: var(--font-size-sm);
@@ -229,6 +235,10 @@ button {
   background: var(--color-brand-primary);
   color: var(--color-brand-primary-text);
   border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
 }
 
 .button-row {
@@ -584,6 +594,19 @@ button {
   font-size: var(--font-size-sm);
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-tertiary);
+}
+
+h3 > svg {
+  vertical-align: -0.15em;
+}
+
 .toast-stack {
   position: fixed;
   top: var(--space-4);
@@ -605,6 +628,12 @@ button {
   align-items: center;
   gap: 0.75rem;
   box-shadow: 0 8px 24px var(--color-shadow);
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .toast-success {

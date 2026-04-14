@@ -1,4 +1,5 @@
 import { Link, Outlet } from 'react-router-dom';
+import { LayoutDashboard, LogOut, ScrollText, Shield, ShieldCheck, Users } from 'lucide-react';
 
 import { BrandLogo } from './BrandLogo.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -21,14 +22,14 @@ export function Layout(): JSX.Element {
           </p>
         ) : null}
         <nav>
-          <Link to="/dashboard">Dashboard</Link>
-          {user?.role === 'admin' ? <Link to="/admin">Admin Overview</Link> : null}
-          {user?.role === 'admin' ? <Link to="/admin/audit">Audit Log</Link> : null}
-          {user?.role === 'admin' ? <Link to="/admin/sso">SSO (OIDC)</Link> : null}
-          {user?.role === 'admin' ? <Link to="/admin/users">Admin Users</Link> : null}
+          <Link to="/dashboard"><LayoutDashboard size={20} /> Dashboard</Link>
+          {user?.role === 'admin' ? <Link to="/admin"><Shield size={20} /> Admin Overview</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/audit"><ScrollText size={20} /> Audit Log</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/sso"><ShieldCheck size={20} /> SSO (OIDC)</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/users"><Users size={20} /> Admin Users</Link> : null}
         </nav>
         <button type="button" onClick={logout}>
-          Logout
+          <LogOut size={16} /> Logout
         </button>
       </aside>
       <main className="content">

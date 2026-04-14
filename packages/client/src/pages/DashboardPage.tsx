@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Calendar, FolderOpen, Link2Off, Plus } from 'lucide-react';
 
 import type {
   MicrosoftCalendarAuthUrlResponse,
@@ -140,7 +141,7 @@ export function DashboardPage(): JSX.Element {
         <h2>Dashboard</h2>
         {canManageProjects ? (
           <button type="button" onClick={() => setIsCreateModalOpen(true)} className="header-button">
-            Create Project
+            <Plus size={16} /> Create Project
           </button>
         ) : null}
       </div>
@@ -172,12 +173,15 @@ export function DashboardPage(): JSX.Element {
       ) : null}
 
       {!isLoading && !error && projects.length === 0 ? (
-        <p className="hint">No projects yet. Create your first project to begin scheduling.</p>
+        <div className="empty-state">
+          <FolderOpen size={24} />
+          <p className="hint">No projects yet. Create your first project to begin scheduling.</p>
+        </div>
       ) : null}
 
       {isEngineer ? (
         <div className="detail-card status-card">
-          <h3>Microsoft Calendar</h3>
+          <h3><Calendar size={20} /> Microsoft Calendar</h3>
           <p className="hint">
             {calendarStatus?.connected
               ? `Connected as ${calendarStatus.account_email ?? 'your Microsoft account'}`
@@ -197,7 +201,7 @@ export function DashboardPage(): JSX.Element {
                 onClick={() => void handleDisconnectMicrosoftCalendar()}
                 disabled={calendarPending}
               >
-                {calendarPending ? 'Disconnecting...' : 'Disconnect Calendar'}
+                {calendarPending ? 'Disconnecting...' : <><Link2Off size={16} /> Disconnect Calendar</>}
               </button>
             ) : (
               <button

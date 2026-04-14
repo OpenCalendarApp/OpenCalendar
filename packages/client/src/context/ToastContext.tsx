@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 
 type ToastTone = 'info' | 'success' | 'error';
 
@@ -44,9 +45,14 @@ export function ToastProvider({ children }: { children: ReactNode }): JSX.Elemen
       <div className="toast-stack" aria-live="polite" aria-atomic="true">
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast toast-${toast.tone}`}>
-            <span>{toast.message}</span>
+            <span className="toast-content">
+              {toast.tone === 'success' ? <CheckCircle size={16} /> : null}
+              {toast.tone === 'error' ? <AlertCircle size={16} /> : null}
+              {toast.tone === 'info' ? <Info size={16} /> : null}
+              {toast.message}
+            </span>
             <button type="button" className="toast-close" onClick={() => dismissToast(toast.id)}>
-              Dismiss
+              <X size={16} />
             </button>
           </div>
         ))}
