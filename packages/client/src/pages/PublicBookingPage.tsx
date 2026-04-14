@@ -24,6 +24,44 @@ import {
 type BookingStep = 'password' | 'slot' | 'contact' | 'confirm';
 type BookingMode = 'booking' | 'waitlist';
 
+const STEP_ORDER: BookingStep[] = ['password', 'slot', 'contact', 'confirm'];
+const STEP_LABELS: Record<BookingStep, string> = {
+  password: 'Password',
+  slot: 'Select Time',
+  contact: 'Your Details',
+  confirm: 'Confirmed'
+};
+
+function BookingProgressBar({ current }: { current: BookingStep }): JSX.Element {
+  const currentIndex = STEP_ORDER.indexOf(current);
+
+  return (
+    <nav className="booking-progress" aria-label="Booking progress">
+      <ol>
+        {STEP_ORDER.map((stepKey, index) => {
+          let status: string;
+          if (index < currentIndex) {
+            status = 'completed';
+          } else if (index === currentIndex) {
+            status = 'active';
+          } else {
+            status = 'upcoming';
+          }
+
+          return (
+            <li key={stepKey} className={`booking-progress-step ${status}`}>
+              <span className="booking-progress-indicator">
+                {status === 'completed' ? '✓' : index + 1}
+              </span>
+              <span className="booking-progress-label">{STEP_LABELS[stepKey]}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
 interface ContactFormState {
   first_name: string;
   last_name: string;
@@ -286,6 +324,8 @@ export function PublicBookingPage(): JSX.Element {
         <TimeZoneSelect label="Display Timezone" />
       </div>
 
+      <BookingProgressBar current={step} />
+
       {step === 'password' ? (
         <form className="detail-card" onSubmit={(event) => {
           event.preventDefault();
@@ -297,7 +337,7 @@ export function PublicBookingPage(): JSX.Element {
           setError(null);
           setStep('slot');
         }}>
-          <h3>Step 1: Project Password</h3>
+          <h3>Project Password</h3>
           <label>
             Password
             <input
@@ -317,7 +357,7 @@ export function PublicBookingPage(): JSX.Element {
 
       {step === 'slot' ? (
         <div className="detail-card">
-          <h3>Step 2: Select a Slot</h3>
+          <h3>Select a Time Slot</h3>
 
           {projectResponse.available_slots.length === 0 && projectResponse.full_slots.length === 0 ? (
             <p className="hint">No upcoming slots remain for this project.</p>
@@ -433,7 +473,7 @@ export function PublicBookingPage(): JSX.Element {
 
       {step === 'contact' ? (
         <form className="detail-card" onSubmit={(event) => void submitBooking(event)}>
-          <h3>Step 3: Contact Details ({bookingMode === 'waitlist' ? 'Waitlist' : 'Booking'})</h3>
+          <h3>Your Details {bookingMode === 'waitlist' ? '(Waitlist)' : ''}</h3>
 
           {selectedSlot ? <p className="hint">Selected slot: {formatSlotLabel(selectedSlot, timeZone)}</p> : null}
           {bookingMode === 'waitlist' ? (
@@ -503,7 +543,7 @@ export function PublicBookingPage(): JSX.Element {
 
       {step === 'confirm' && bookingResponse ? (
         <div className="detail-card">
-          <h3>Step 4: Confirmed</h3>
+          <h3>Booking Confirmed ✓</h3>
           <p>
             Booking confirmed for {bookingResponse.booking.client_first_name}{' '}
             {bookingResponse.booking.client_last_name}.
@@ -532,7 +572,7 @@ export function PublicBookingPage(): JSX.Element {
 
       {step === 'confirm' && !bookingResponse && waitlistResponse ? (
         <div className="detail-card">
-          <h3>Step 4: Waitlist Confirmed</h3>
+          <h3>Waitlist Confirmed ✓</h3>
           <p>{waitlistResponse.message}</p>
           {selectedSlot ? <p className="hint">Requested slot: {formatSlotLabel(selectedSlot, timeZone)}</p> : null}
           <div className="button-row">

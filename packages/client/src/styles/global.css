@@ -218,6 +218,83 @@ button {
   gap: 1rem;
 }
 
+/* ─── Booking Progress Bar ──────────────────────────────────────────────── */
+
+.booking-progress ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.booking-progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  position: relative;
+}
+
+.booking-progress-step::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: calc(50% + 18px);
+  right: calc(-50% + 18px);
+  height: 2px;
+  background: #d7dde6;
+}
+
+.booking-progress-step:last-child::after {
+  display: none;
+}
+
+.booking-progress-step.completed::after {
+  background: #2a8c4a;
+}
+
+.booking-progress-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  background: #e4e8ee;
+  color: #5b6c82;
+  z-index: 1;
+}
+
+.booking-progress-step.active .booking-progress-indicator {
+  background: #194677;
+  color: #fff;
+}
+
+.booking-progress-step.completed .booking-progress-indicator {
+  background: #2a8c4a;
+  color: #fff;
+}
+
+.booking-progress-label {
+  font-size: 0.75rem;
+  color: #5b6c82;
+  text-align: center;
+}
+
+.booking-progress-step.active .booking-progress-label {
+  color: #194677;
+  font-weight: 600;
+}
+
+.booking-progress-step.completed .booking-progress-label {
+  color: #2a8c4a;
+}
+
 .detail-card {
   background: #ffffff;
   border: 1px solid #d7dde6;
@@ -467,6 +544,16 @@ button {
     right: 0.5rem;
     top: 0.5rem;
     width: auto;
+  }
+
+  .booking-progress-label {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-progress-label {
+    display: none;
   }
 }
 
