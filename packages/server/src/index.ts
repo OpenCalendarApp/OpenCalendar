@@ -1,6 +1,7 @@
 import 'dotenv/config';
 
 import { pool } from './db/pool.js';
+import { recoverPendingReminders, registerBookingReminderQueueHandlers } from './jobs/bookingReminders.js';
 import { createDataRetentionScheduler } from './jobs/dataRetention.js';
 import { registerEmailQueueHandlers } from './jobs/emailNotifications.js';
 import { registerMicrosoftCalendarQueueHandlers } from './jobs/microsoftCalendar.js';
@@ -10,6 +11,7 @@ import { createApp } from './app.js';
 const app = createApp();
 registerEmailQueueHandlers();
 registerMicrosoftCalendarQueueHandlers();
+registerBookingReminderQueueHandlers();
 jobQueue.start();
 const dataRetentionScheduler = createDataRetentionScheduler({ db: pool });
 dataRetentionScheduler.start();
@@ -40,6 +42,13 @@ server.once('error', (error) => {
 
 server.once('listening', () => {
   console.log(`Server listening on port ${port}`);
+  void recoverPendingReminders().catch((error) => {
+    console.error(JSON.stringify({
+      level: 'error',
+      event: 'booking_reminders_recovery_failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }));
+  });
 });
 
 async function shutdown(signal: string): Promise<void> {

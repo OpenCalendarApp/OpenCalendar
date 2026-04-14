@@ -24,6 +24,7 @@ import type { PoolClient } from 'pg';
 
 import { pool } from '../db/pool.js';
 import { enqueueBookingEmailJob } from '../jobs/emailNotifications.js';
+import { cancelBookingReminders, scheduleBookingReminders } from '../jobs/bookingReminders.js';
 import { enqueueMicrosoftCalendarSyncJob } from '../jobs/microsoftCalendar.js';
 import {
   buildBookingPasswordAbuseKey,
@@ -731,6 +732,13 @@ router.post('/book/:shareToken', publicWriteRateLimiter, asyncHandler(async (req
       );
     }
 
+    await scheduleBookingReminders({
+      client,
+      tenantId: project.tenant_id,
+      bookingId: booking.id,
+      sessionStartIso: timeBlock.start_time
+    });
+
     await client.query('COMMIT');
 
     enqueueBookingEmailSafely({
@@ -1330,6 +1338,14 @@ router.post('/reschedule/:bookingToken', publicWriteRateLimiter, asyncHandler(as
       timeBlockId: currentBooking.time_block_id
     });
 
+    await cancelBookingReminders({ client, bookingId: currentBooking.id });
+    await scheduleBookingReminders({
+      client,
+      tenantId: currentBooking.tenant_id,
+      bookingId: newBooking.id,
+      sessionStartIso: newTimeBlock.start_time
+    });
+
     await client.query('COMMIT');
 
     const engineerNames = engineersResult.rows
@@ -1513,6 +1529,8 @@ router.post('/cancel/:bookingToken', publicWriteRateLimiter, asyncHandler(async 
       tenantId: booking.tenant_id,
       timeBlockId: booking.time_block_id
     });
+
+    await cancelBookingReminders({ client, bookingId: booking.id });
 
     await client.query('COMMIT');
 
