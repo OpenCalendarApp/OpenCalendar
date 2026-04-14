@@ -196,7 +196,7 @@ export function ReschedulePage(): JSX.Element {
       <div className="detail-card">
         <div className="public-brand-bar">
           <BrandLogo className="brand-logo public-brand-logo" />
-          <p className="hint public-brand-copy">Manage your booking through Calendar Genie.</p>
+          <p className="hint public-brand-copy">Review and update your booking below.</p>
         </div>
         <h2>Reschedule: {lookup.project.name}</h2>
         <p>
