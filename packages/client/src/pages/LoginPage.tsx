@@ -160,6 +160,7 @@ export function LoginPage(): JSX.Element {
         <BrandLogo variant="stacked" className="brand-logo auth-brand-logo" />
         <p className="hint">Calendar Genie keeps teams, calendars, and client bookings aligned.</p>
       </div>
+      <p className="hint">Project-aware scheduling that replaces per-seat calendar tools. Manage availability, bookings, and client communication in one place.</p>
       <h2>Login</h2>
       {!setupCheckPending && requiresSetup ? (
         <div className="detail-card status-card">

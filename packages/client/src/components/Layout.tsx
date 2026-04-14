@@ -13,7 +13,7 @@ export function Layout(): JSX.Element {
           <Link to="/dashboard" className="brand-link" aria-label="Calendar Genie dashboard">
             <BrandLogo className="brand-logo sidebar-logo" />
           </Link>
-          <p className="brand-subtitle">Scheduling infrastructure for client session teams.</p>
+          <p className="brand-subtitle">Team scheduling built for how consultants work.</p>
         </div>
         {user ? (
           <p className="user-badge">
