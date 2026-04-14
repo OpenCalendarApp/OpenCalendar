@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { CalendarPlus, CheckCircle, Link2, MonitorSmartphone, Plus } from 'lucide-react';
 
 import type {
   MicrosoftCalendarAuthUrlResponse,
@@ -136,7 +137,7 @@ export function OnboardingWizard({
 
       <ol className="onboarding-steps">
         <li className={steps.calendar_connected ? 'step-done' : active === 1 ? 'step-active' : ''}>
-          <span className="step-indicator">{steps.calendar_connected ? '✓' : '1'}</span>
+          <span className="step-indicator">{steps.calendar_connected ? <CheckCircle size={16} /> : <MonitorSmartphone size={16} />}</span>
           <div className="step-content">
             <strong>Connect Calendar</strong>
             <p className="hint">Link your Microsoft Calendar to auto-sync bookings.</p>
@@ -153,7 +154,7 @@ export function OnboardingWizard({
         </li>
 
         <li className={steps.has_project ? 'step-done' : active === 2 ? 'step-active' : ''}>
-          <span className="step-indicator">{steps.has_project ? '✓' : '2'}</span>
+          <span className="step-indicator">{steps.has_project ? <CheckCircle size={16} /> : <Plus size={16} />}</span>
           <div className="step-content">
             <strong>Create First Project</strong>
             <p className="hint">Set up a project to organize your booking sessions.</p>
@@ -166,7 +167,7 @@ export function OnboardingWizard({
         </li>
 
         <li className={steps.has_time_block ? 'step-done' : active === 3 ? 'step-active' : ''}>
-          <span className="step-indicator">{steps.has_time_block ? '✓' : '3'}</span>
+          <span className="step-indicator">{steps.has_time_block ? <CheckCircle size={16} /> : <CalendarPlus size={16} />}</span>
           <div className="step-content">
             <strong>Set Availability</strong>
             <p className="hint">Add time blocks so clients can book sessions.</p>
@@ -179,7 +180,7 @@ export function OnboardingWizard({
         </li>
 
         <li className={steps.has_copied_link ? 'step-done' : active === 4 ? 'step-active' : ''}>
-          <span className="step-indicator">{steps.has_copied_link ? '✓' : '4'}</span>
+          <span className="step-indicator">{steps.has_copied_link ? <CheckCircle size={16} /> : <Link2 size={16} />}</span>
           <div className="step-content">
             <strong>Share Booking Link</strong>
             <p className="hint">Copy your booking link and share it with clients.</p>

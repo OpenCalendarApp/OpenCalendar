@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { ChevronRight } from 'lucide-react';
 
 import type { CreateProjectRequest, ProjectResponse } from '@opencalendar/shared';
 
@@ -91,7 +92,7 @@ export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalPro
             onClick={() => setShowAdvanced((prev) => !prev)}
             aria-expanded={showAdvanced}
           >
-            <span className={`advanced-chevron ${showAdvanced ? 'open' : ''}`}>&#9654;</span>
+            <span className={`advanced-chevron ${showAdvanced ? 'open' : ''}`}><ChevronRight size={16} /></span>
             Advanced Settings
           </button>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LogIn, ShieldCheck } from 'lucide-react';
 
 import type { OidcSsoAuthUrlResponse, SetupStatusResponse } from '@opencalendar/shared';
 
@@ -179,7 +180,7 @@ export function LoginPage(): JSX.Element {
           onClick={() => void startSsoLogin()}
           disabled={ssoPending || requiresSetup || setupCheckPending}
         >
-          {ssoPending ? 'Starting SSO...' : 'Sign in with SSO'}
+          {ssoPending ? 'Starting SSO...' : <><ShieldCheck size={16} /> Sign in with SSO</>}
         </button>
       </div>
       <form onSubmit={(event) => void handleSubmit(event)}>
@@ -197,7 +198,7 @@ export function LoginPage(): JSX.Element {
         </label>
         {error ? <p className="error">{error}</p> : null}
         <button type="submit" disabled={pending || ssoPending || requiresSetup || setupCheckPending}>
-          {pending ? 'Signing in...' : 'Sign in'}
+          {pending ? 'Signing in...' : <><LogIn size={16} /> Sign in</>}
         </button>
       </form>
       <p className="hint">

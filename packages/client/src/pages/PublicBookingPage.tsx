@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
+import {
+  CalendarDays,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Download,
+  ListOrdered,
+  Lock,
+  User
+} from 'lucide-react';
 
 import type {
   BookingResponse,
@@ -32,6 +43,13 @@ const STEP_LABELS: Record<BookingStep, string> = {
   confirm: 'Confirmed'
 };
 
+const STEP_ICONS: Record<BookingStep, JSX.Element> = {
+  password: <Lock size={16} />,
+  slot: <CalendarDays size={16} />,
+  contact: <User size={16} />,
+  confirm: <CheckCircle size={16} />
+};
+
 function BookingProgressBar({ current }: { current: BookingStep }): JSX.Element {
   const currentIndex = STEP_ORDER.indexOf(current);
 
@@ -51,7 +69,7 @@ function BookingProgressBar({ current }: { current: BookingStep }): JSX.Element 
           return (
             <li key={stepKey} className={`booking-progress-step ${status}`}>
               <span className="booking-progress-indicator">
-                {status === 'completed' ? '✓' : index + 1}
+                {status === 'completed' ? <CheckCircle size={16} /> : STEP_ICONS[stepKey]}
               </span>
               <span className="booking-progress-label">{STEP_LABELS[stepKey]}</span>
             </li>
@@ -450,7 +468,7 @@ export function PublicBookingPage(): JSX.Element {
 
           <div className="button-row">
             <button type="button" className="secondary-button" onClick={() => setStep('password')}>
-              Back
+              <ChevronLeft size={16} /> Back
             </button>
             <button
               type="button"
@@ -465,7 +483,7 @@ export function PublicBookingPage(): JSX.Element {
               }}
               disabled={projectResponse.available_slots.length === 0 && projectResponse.full_slots.length === 0}
             >
-              Continue
+              Continue <ChevronRight size={16} />
             </button>
           </div>
         </div>
@@ -530,7 +548,7 @@ export function PublicBookingPage(): JSX.Element {
 
           <div className="button-row">
             <button type="button" className="secondary-button" onClick={() => setStep('slot')}>
-              Back
+              <ChevronLeft size={16} /> Back
             </button>
             <button type="submit" disabled={isSubmitting}>
               {isSubmitting
@@ -543,7 +561,7 @@ export function PublicBookingPage(): JSX.Element {
 
       {step === 'confirm' && bookingResponse ? (
         <div className="detail-card">
-          <h3>Booking Confirmed ✓</h3>
+          <h3><CheckCircle size={20} /> Booking Confirmed</h3>
           <p>
             Booking confirmed for {bookingResponse.booking.client_first_name}{' '}
             {bookingResponse.booking.client_last_name}.
@@ -561,7 +579,7 @@ export function PublicBookingPage(): JSX.Element {
               type="button"
               onClick={() => downloadCalendar(bookingResponse.booking.booking_token)}
             >
-              Download Calendar (.ics)
+              <Download size={16} /> Download Calendar (.ics)
             </button>
             <button type="button" className="secondary-button" onClick={resetFlow}>
               Book Another Slot
@@ -572,7 +590,7 @@ export function PublicBookingPage(): JSX.Element {
 
       {step === 'confirm' && !bookingResponse && waitlistResponse ? (
         <div className="detail-card">
-          <h3>Waitlist Confirmed ✓</h3>
+          <h3><ListOrdered size={20} /> Waitlist Confirmed</h3>
           <p>{waitlistResponse.message}</p>
           {selectedSlot ? <p className="hint">Requested slot: {formatSlotLabel(selectedSlot, timeZone)}</p> : null}
           <div className="button-row">

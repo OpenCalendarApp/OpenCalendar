@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { CalendarCheck, Download, XCircle } from 'lucide-react';
 
 import type {
   BookingLookupResponse,
@@ -205,7 +206,7 @@ export function ReschedulePage(): JSX.Element {
         <p className="hint">Current slot: {formatSlotLabel(lookup.current_slot, timeZone)}</p>
         <TimeZoneSelect label="Display Timezone" />
         <button type="button" className="secondary-button" onClick={() => downloadCalendar(lookup.booking.booking_token)}>
-          Download Current Calendar (.ics)
+          <Download size={16} /> Download Current Calendar (.ics)
         </button>
       </div>
 
@@ -216,7 +217,7 @@ export function ReschedulePage(): JSX.Element {
             type="button"
             onClick={() => downloadCalendar(successBookingToken ?? lookup.booking.booking_token)}
           >
-            Download Updated Calendar (.ics)
+            <Download size={16} /> Download Updated Calendar (.ics)
           </button>
         </div>
       ) : null}
@@ -270,7 +271,7 @@ export function ReschedulePage(): JSX.Element {
             onClick={() => void submitReschedule()}
             disabled={isSubmitting || lookup.available_slots.length === 0 || selectedSlotId === null}
           >
-            {isSubmitting ? 'Rescheduling...' : 'Confirm Reschedule'}
+            {isSubmitting ? 'Rescheduling...' : <><CalendarCheck size={16} /> Confirm Reschedule</>}
           </button>
           <button
             type="button"
@@ -278,7 +279,7 @@ export function ReschedulePage(): JSX.Element {
             onClick={() => setIsCancelConfirmOpen(true)}
             disabled={isCancelling}
           >
-            {isCancelling ? 'Cancelling...' : 'Cancel Booking'}
+            {isCancelling ? 'Cancelling...' : <><XCircle size={16} /> Cancel Booking</>}
           </button>
         </div>
       </div>
