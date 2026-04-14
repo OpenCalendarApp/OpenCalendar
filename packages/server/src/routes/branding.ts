@@ -99,12 +99,13 @@ router.get('/:tenantUid', asyncHandler(async (req, res) => {
     [tenantUid]
   );
 
-  if (result.rows.length === 0) {
+  const brandingRow = result.rows[0];
+  if (!brandingRow) {
     res.status(404).json({ error: 'Tenant not found' });
     return;
   }
 
-  const response: PublicTenantBrandingResponse = { branding: result.rows[0] };
+  const response: PublicTenantBrandingResponse = { branding: brandingRow };
   res.json(response);
 }));
 
@@ -172,12 +173,13 @@ router.get('/admin/current', authMiddleware, requireRole(['admin']), asyncHandle
     [req.user.tenantId]
   );
 
-  if (result.rows.length === 0) {
+  const brandingRow = result.rows[0];
+  if (!brandingRow) {
     res.status(404).json({ error: 'Tenant not found' });
     return;
   }
 
-  const response: TenantBrandingResponse = { branding: result.rows[0] };
+  const response: TenantBrandingResponse = { branding: brandingRow };
   res.json(response);
 }));
 
@@ -204,7 +206,13 @@ router.put('/admin/accent-color', authMiddleware, requireRole(['admin']), asyncH
     [accent_color ?? null, req.user.tenantId]
   );
 
-  const response: TenantBrandingResponse = { branding: result.rows[0] };
+  const updated = result.rows[0];
+  if (!updated) {
+    res.status(404).json({ error: 'Tenant not found' });
+    return;
+  }
+
+  const response: TenantBrandingResponse = { branding: updated };
   res.json(response);
 }));
 
@@ -272,7 +280,13 @@ router.post('/admin/logo', authMiddleware, requireRole(['admin']), (req, res, ne
     [req.user.tenantId]
   );
 
-  const response: TenantBrandingResponse = { branding: result.rows[0] };
+  const uploaded = result.rows[0];
+  if (!uploaded) {
+    res.status(404).json({ error: 'Tenant not found' });
+    return;
+  }
+
+  const response: TenantBrandingResponse = { branding: uploaded };
   res.json(response);
 }));
 
@@ -302,8 +316,9 @@ router.delete('/admin/logo', authMiddleware, requireRole(['admin']), asyncHandle
     `SELECT logo_url, accent_color FROM tenants WHERE id = $1`,
     [req.user.tenantId]
   );
-  if (result.rows.length > 0) {
-    response.branding = result.rows[0];
+  const refetched = result.rows[0];
+  if (refetched) {
+    response.branding = refetched;
   }
 
   res.json(response);
