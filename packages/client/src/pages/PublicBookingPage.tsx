@@ -5,7 +5,6 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Download,
   ListOrdered,
   Lock,
