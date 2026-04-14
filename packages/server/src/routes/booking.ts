@@ -97,6 +97,7 @@ type BookingInsertRow = Booking;
 
 type BookingLookupRow = Booking & {
   tenant_id: number;
+  tenant_uid: string;
   project_id: number;
   project_name: string;
   project_description: string;
@@ -300,11 +301,12 @@ router.get('/project/:shareToken', publicReadRateLimiter, asyncHandler(async (re
 
   const projectResult = await pool.query<PublicProjectTenantRow>(
     `
-    SELECT id, tenant_id, name, description, session_length_minutes, is_group_signup, share_token
-           , booking_email_domain_allowlist
-    FROM projects
-    WHERE share_token = $1
-      AND is_active = true
+    SELECT p.id, p.tenant_id, t.tenant_uid, p.name, p.description, p.session_length_minutes,
+           p.is_group_signup, p.share_token, p.booking_email_domain_allowlist
+    FROM projects p
+    INNER JOIN tenants t ON t.id = p.tenant_id
+    WHERE p.share_token = $1
+      AND p.is_active = true
     `,
     [shareToken]
   );
@@ -462,18 +464,20 @@ router.post('/book/:shareToken', publicWriteRateLimiter, asyncHandler(async (req
   const projectResult = await pool.query<ProjectAuthRow>(
     `
     SELECT
-      id,
-      tenant_id,
-      name,
-      description,
-      booking_email_domain_allowlist,
-      session_length_minutes,
-      is_group_signup,
-      share_token,
-      signup_password_hash
-    FROM projects
-    WHERE share_token = $1
-      AND is_active = true
+      p.id,
+      p.tenant_id,
+      t.tenant_uid,
+      p.name,
+      p.description,
+      p.booking_email_domain_allowlist,
+      p.session_length_minutes,
+      p.is_group_signup,
+      p.share_token,
+      p.signup_password_hash
+    FROM projects p
+    INNER JOIN tenants t ON t.id = p.tenant_id
+    WHERE p.share_token = $1
+      AND p.is_active = true
     `,
     [shareToken]
   );
@@ -808,18 +812,20 @@ router.post('/waitlist/:shareToken', publicWriteRateLimiter, asyncHandler(async 
   const projectResult = await pool.query<ProjectAuthRow>(
     `
     SELECT
-      id,
-      tenant_id,
-      name,
-      description,
-      booking_email_domain_allowlist,
-      session_length_minutes,
-      is_group_signup,
-      share_token,
-      signup_password_hash
-    FROM projects
-    WHERE share_token = $1
-      AND is_active = true
+      p.id,
+      p.tenant_id,
+      t.tenant_uid,
+      p.name,
+      p.description,
+      p.booking_email_domain_allowlist,
+      p.session_length_minutes,
+      p.is_group_signup,
+      p.share_token,
+      p.signup_password_hash
+    FROM projects p
+    INNER JOIN tenants t ON t.id = p.tenant_id
+    WHERE p.share_token = $1
+      AND p.is_active = true
     `,
     [shareToken]
   );
@@ -1026,6 +1032,7 @@ router.get('/booking/:bookingToken', publicReadRateLimiter, asyncHandler(async (
     SELECT
       b.id,
       b.tenant_id,
+      t.tenant_uid,
       b.time_block_id,
       b.client_first_name,
       b.client_last_name,
@@ -1046,6 +1053,7 @@ router.get('/booking/:bookingToken', publicReadRateLimiter, asyncHandler(async (
     FROM bookings b
     INNER JOIN time_blocks tb ON tb.id = b.time_block_id
     INNER JOIN projects p ON p.id = tb.project_id
+    INNER JOIN tenants t ON t.id = b.tenant_id
     WHERE b.booking_token = $1
       AND b.cancelled_at IS NULL
       AND b.tenant_id = p.tenant_id
@@ -1111,7 +1119,8 @@ router.get('/booking/:bookingToken', publicReadRateLimiter, asyncHandler(async (
     booking_email_domain_allowlist: bookingRow.booking_email_domain_allowlist,
     session_length_minutes: bookingRow.session_length_minutes,
     is_group_signup: bookingRow.is_group_signup,
-    share_token: bookingRow.share_token
+    share_token: bookingRow.share_token,
+    tenant_uid: bookingRow.tenant_uid
   };
 
   const booking: Booking = {

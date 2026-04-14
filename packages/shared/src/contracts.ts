@@ -24,7 +24,9 @@ import type {
   updateAdminOidcSsoConfigSchema,
   updateUserRoleSchema,
   updateUserStatusSchema,
-  updateProjectSchema
+  updateProjectSchema,
+  updateBrandingSchema,
+  tenantUidParamsSchema
 } from './schemas.js';
 
 export type RegisterRequest = z.infer<typeof registerSchema>;
@@ -57,3 +59,6 @@ export type RescheduleBookingRequest = z.infer<typeof rescheduleBookingSchema>;
 
 export type ForgotPasswordRequest = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;
+
+export type UpdateBrandingRequest = z.infer<typeof updateBrandingSchema>;
+export type TenantUidParams = z.infer<typeof tenantUidParamsSchema>;

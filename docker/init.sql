@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS tenants (
   id SERIAL PRIMARY KEY,
   tenant_uid UUID NOT NULL UNIQUE DEFAULT app_random_uuid(),
   name VARCHAR(255) NOT NULL DEFAULT 'Tenant',
+  logo_url TEXT,
+  accent_color VARCHAR(7),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
