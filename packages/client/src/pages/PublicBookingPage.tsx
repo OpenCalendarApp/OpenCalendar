@@ -402,7 +402,7 @@ export function PublicBookingPage(): JSX.Element {
                       const engineerNames = slot.engineers.length > 0
                         ? slot.engineers.map((engineer) => `${engineer.first_name} ${engineer.last_name}`).join(', ')
                         : 'Unassigned';
-                      const slotAriaLabel = `${formatSlotLabel(slot, timeZone)}, ${slot.remaining_slots} remaining, Engineers: ${engineerNames}`;
+                      const slotAriaLabel = `Time slot: ${formatSlotLabel(slot, timeZone)}, ${slot.remaining_slots} remaining, Engineers: ${engineerNames}`;
                       return (
                         <li key={slot.time_block_id}>
                           <label className="checkbox-label slot-available">
@@ -448,7 +448,7 @@ export function PublicBookingPage(): JSX.Element {
                       const engineerNames = slot.engineers.length > 0
                         ? slot.engineers.map((engineer) => `${engineer.first_name} ${engineer.last_name}`).join(', ')
                         : 'Unassigned';
-                      const slotAriaLabel = `${formatSlotLabel(slot, timeZone)}, Full — join waitlist. ${slot.waitlist_count} on waitlist. Engineers: ${engineerNames}`;
+                      const slotAriaLabel = `Time slot: ${formatSlotLabel(slot, timeZone)}, Full — join waitlist. ${slot.waitlist_count} on waitlist. Engineers: ${engineerNames}`;
                       return (
                         <li key={slot.time_block_id}>
                           <label className="checkbox-label slot-full">

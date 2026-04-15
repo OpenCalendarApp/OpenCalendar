@@ -663,6 +663,7 @@ textarea:focus-visible {
   color: var(--color-text-outside);
   background: var(--color-bg-outside);
   font-style: italic;
+  opacity: 0.55;
 }
 
 .calendar-day.today {

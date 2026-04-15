@@ -66,11 +66,11 @@ export function ToastProvider({ children }: { children: ReactNode }): JSX.Elemen
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {/* Error toasts use role="alert" (assertive) so screen readers announce them immediately */}
+      {/* Error toasts: role="alert" implicitly sets aria-live="assertive" and aria-atomic="true",
+          providing immediate screen reader announcements for error messages */}
       <div
         className="toast-stack toast-stack-errors"
         role="alert"
-        aria-live="assertive"
         aria-atomic="true"
       >
         {errorToasts.map(renderToast)}
