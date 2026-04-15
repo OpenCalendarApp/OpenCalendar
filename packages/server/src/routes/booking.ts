@@ -636,7 +636,7 @@ router.post('/book/:shareToken', publicWriteRateLimiter, asyncHandler(async (req
       )
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id, time_block_id, client_first_name, client_last_name,
-                client_email, client_phone, booking_token, booked_at, cancelled_at
+                client_email, client_phone, booking_token, booked_at, cancelled_at, session_notes
       `,
       [
         project.tenant_id,
@@ -1041,6 +1041,7 @@ router.get('/booking/:bookingToken', publicReadRateLimiter, asyncHandler(async (
       b.booking_token,
       b.booked_at,
       b.cancelled_at,
+      b.session_notes,
       p.id AS project_id,
       p.name AS project_name,
       p.description AS project_description,
@@ -1132,7 +1133,8 @@ router.get('/booking/:bookingToken', publicReadRateLimiter, asyncHandler(async (
     client_phone: bookingRow.client_phone,
     booking_token: bookingRow.booking_token,
     booked_at: bookingRow.booked_at,
-    cancelled_at: bookingRow.cancelled_at
+    cancelled_at: bookingRow.cancelled_at,
+    session_notes: bookingRow.session_notes ?? null
   };
 
   const currentSlot: CurrentBookingSlotInfo = {
@@ -1194,6 +1196,7 @@ router.post('/reschedule/:bookingToken', publicWriteRateLimiter, asyncHandler(as
         b.booking_token,
         b.booked_at,
         b.cancelled_at,
+        b.session_notes,
         tb.project_id,
             p.name AS project_name,
             p.description AS project_description,
@@ -1303,7 +1306,7 @@ router.post('/reschedule/:bookingToken', publicWriteRateLimiter, asyncHandler(as
       )
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id, time_block_id, client_first_name, client_last_name,
-                client_email, client_phone, booking_token, booked_at, cancelled_at
+                client_email, client_phone, booking_token, booked_at, cancelled_at, session_notes
       `,
       [
         currentBooking.tenant_id,
@@ -1473,6 +1476,7 @@ router.post('/cancel/:bookingToken', publicWriteRateLimiter, asyncHandler(async 
              b.booking_token,
              b.booked_at,
              b.cancelled_at,
+             b.session_notes,
              p.name AS project_name,
              p.description AS project_description,
              tb.start_time,
@@ -1514,7 +1518,7 @@ router.post('/cancel/:bookingToken', publicWriteRateLimiter, asyncHandler(async 
       WHERE id = $1
         AND tenant_id = $2
       RETURNING id, time_block_id, client_first_name, client_last_name,
-                client_email, client_phone, booking_token, booked_at, cancelled_at
+                client_email, client_phone, booking_token, booked_at, cancelled_at, session_notes
       `,
       [booking.id, booking.tenant_id]
     );
@@ -1614,6 +1618,7 @@ router.get('/calendar/:bookingToken', publicReadRateLimiter, asyncHandler(async 
       b.booking_token,
       b.booked_at,
       b.cancelled_at,
+      b.session_notes,
       p.name AS project_name,
       p.description AS project_description,
       p.share_token,
