@@ -12,6 +12,7 @@ import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import bookingRoutes from './routes/booking.js';
 import brandingRoutes from './routes/branding.js';
+import dashboardRoutes from './routes/dashboard.js';
 import projectRoutes from './routes/projects.js';
 import setupRoutes from './routes/setup.js';
 import timeBlockRoutes from './routes/timeBlocks.js';
@@ -72,6 +73,7 @@ function mountApiVersionRoutes(app: express.Express, basePath: '/api' | '/api/v1
   app.use(`${basePath}/time-blocks`, timeBlockRoutes);
   app.use(`${basePath}/schedule`, bookingRoutes);
   app.use(`${basePath}/branding`, brandingRoutes);
+  app.use(`${basePath}/dashboard`, dashboardRoutes);
 }
 
 export function createApp(): express.Express {

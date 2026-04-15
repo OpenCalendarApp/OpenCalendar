@@ -172,6 +172,47 @@ a {
   width: auto;
 }
 
+/* ─── Dashboard Metrics Hero ────────────────────────────────────────────── */
+
+.metrics-hero {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.metric-card {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.metric-icon {
+  color: var(--color-brand-primary);
+  margin-bottom: 0.2rem;
+}
+
+.metric-value {
+  font-size: var(--font-size-xl, 1.6rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+}
+
+.metric-label {
+  font-size: var(--font-size-sm, 0.8rem);
+  color: var(--color-text-secondary, #5b6c82);
+}
+
+/* ─── Project Grid ──────────────────────────────────────────────────────── */
+
 .project-grid {
   list-style: none;
   padding: 0;
@@ -705,11 +746,19 @@ h3 > svg {
   .booking-progress-label {
     font-size: 0.65rem;
   }
+
+  .metrics-hero {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 480px) {
   .booking-progress-label {
     display: none;
+  }
+
+  .metrics-hero {
+    grid-template-columns: 1fr;
   }
 }
 

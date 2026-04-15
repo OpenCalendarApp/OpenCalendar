@@ -362,3 +362,16 @@ export interface TenantBrandingResponse {
 export interface PublicTenantBrandingResponse {
   branding: TenantBranding;
 }
+
+export interface DashboardStats {
+  active_projects: number;
+  sessions_this_week: number;
+  pending_bookings: number;
+  upcoming_next_24h: number;
+  team_members: number;
+  total_bookings_this_month: number;
+}
+
+export interface DashboardStatsResponse {
+  stats: DashboardStats;
+}
