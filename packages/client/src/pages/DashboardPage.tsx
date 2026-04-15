@@ -5,6 +5,7 @@ import {
   Calendar,
   CalendarClock,
   Clock,
+  Download,
   FolderOpen,
   Link2Off,
   Plus,
@@ -21,7 +22,7 @@ import type {
   ProjectsResponse
 } from '@opencalendar/shared';
 
-import { apiFetch } from '../api/client.js';
+import { apiFetch, apiDownload } from '../api/client.js';
 import { CreateProjectModal } from '../components/CreateProjectModal.js';
 import { OnboardingWizard } from '../components/OnboardingWizard.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -43,6 +44,20 @@ export function DashboardPage(): JSX.Element {
   const isEngineer = user?.role === 'engineer';
   const canManageProjects = user?.role === 'pm' || user?.role === 'admin';
   const [dashStats, setDashStats] = useState<DashboardStats | null>(null);
+  const [exportPending, setExportPending] = useState(false);
+
+  async function handleExportAllSessions(): Promise<void> {
+    setExportPending(true);
+    try {
+      await apiDownload('/export/sessions');
+      showToast('CSV exported.', 'success');
+    } catch (exportError) {
+      const message = exportError instanceof Error ? exportError.message : 'Export failed';
+      showToast(message, 'error');
+    } finally {
+      setExportPending(false);
+    }
+  }
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -159,9 +174,19 @@ export function DashboardPage(): JSX.Element {
       <div className="header-row">
         <h2>Dashboard</h2>
         {canManageProjects ? (
-          <button type="button" onClick={() => setIsCreateModalOpen(true)} className="header-button">
-            <Plus size={16} /> Create Project
-          </button>
+          <div className="header-actions">
+            <button
+              type="button"
+              className="header-button export-button"
+              disabled={exportPending}
+              onClick={() => void handleExportAllSessions()}
+            >
+              <Download size={16} /> {exportPending ? 'Exporting...' : 'Export All Sessions'}
+            </button>
+            <button type="button" onClick={() => setIsCreateModalOpen(true)} className="header-button">
+              <Plus size={16} /> Create Project
+            </button>
+          </div>
         ) : null}
       </div>
 

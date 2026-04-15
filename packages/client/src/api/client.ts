@@ -61,3 +61,36 @@ export async function apiFetch<T>(path: string, init?: ApiFetchOptions): Promise
 export async function apiPublicFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return apiFetch<T>(path, { ...init, includeAuth: false });
 }
+
+export async function apiDownload(path: string): Promise<void> {
+  const token = getBearerToken();
+  const headers = new Headers();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const response = await fetch(buildApiUrl(path), { headers });
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      const body = (await response.json()) as { error?: string };
+      throw new Error(body.error ?? `Export failed with status ${response.status}`);
+    }
+    throw new Error(`Export failed with status ${response.status}`);
+  }
+
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
+  const filename = filenameMatch?.[1] ?? 'export.csv';
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
