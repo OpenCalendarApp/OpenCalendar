@@ -15,6 +15,7 @@ import { TimeZoneSelect } from './TimeZoneSelect.js';
 import { useTimezone } from '../context/TimezoneContext.js';
 import { useToast } from '../context/ToastContext.js';
 import { getCurrentDateKeyInTimeZone, toIsoStringInTimeZone } from '../utils/timezone.js';
+import { useFocusTrap } from '../utils/useFocusTrap.js';
 
 interface AddTimeBlockModalProps {
   project: ProjectDetail;
@@ -147,6 +148,7 @@ export function AddTimeBlockModal({
 }: AddTimeBlockModalProps): JSX.Element {
   const { showToast } = useToast();
   const { timeZone } = useTimezone();
+  const containerRef = useFocusTrap<HTMLDivElement>();
   const defaultDate = useMemo(() => getCurrentDateKeyInTimeZone(timeZone), [timeZone]);
   const [defaultYearPart, defaultMonthPart] = defaultDate.split('-');
   const defaultYear = Number(defaultYearPart || 1970);
@@ -216,6 +218,17 @@ export function AddTimeBlockModal({
       }
     })();
   }, [isPm]);
+
+  // Close modal on Escape
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent): void {
+      if (event.key === 'Escape' && !pending) {
+        onClose();
+      }
+    }
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose, pending]);
 
   function toggleEngineer(engineerId: number): void {
     setSelectedEngineerIds((prev) =>
@@ -372,9 +385,9 @@ export function AddTimeBlockModal({
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Add time blocks">
-      <div className="modal-card">
-        <h3>{isPm ? 'Add Time Blocks' : 'Add Personal Time Block'}</h3>
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="add-time-block-title">
+      <div className="modal-card" ref={containerRef}>
+        <h3 id="add-time-block-title">{isPm ? 'Add Time Blocks' : 'Add Personal Time Block'}</h3>
 
         <form onSubmit={(event) => void handleSubmit(event)}>
           <div className="calendar-panel">
@@ -402,15 +415,21 @@ export function AddTimeBlockModal({
               ))}
             </div>
 
-            <div className="calendar-grid">
+            <div className="calendar-grid" role="group" aria-label="Date picker">
               {calendarDayCells.map((cell) => {
                 const isSelected = selectedDates.includes(cell.dateKey);
+                const labelParts = [formatDateLabel(cell.dateKey)];
+                if (cell.isToday) labelParts.push('Today');
+                if (!cell.inCurrentMonth) labelParts.push('Outside current month');
+                const label = labelParts.join(', ');
                 return (
                   <button
                     key={cell.dateKey}
                     type="button"
                     className={`calendar-day${isSelected ? ' selected' : ''}${cell.inCurrentMonth ? '' : ' outside'}${cell.isToday ? ' today' : ''}`}
                     onClick={() => toggleDate(cell.dateKey)}
+                    aria-label={label}
+                    aria-pressed={isSelected}
                   >
                     {cell.dayOfMonth}
                   </button>

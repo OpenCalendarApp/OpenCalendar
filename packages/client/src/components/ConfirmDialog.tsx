@@ -1,3 +1,7 @@
+import { useEffect } from 'react';
+
+import { useFocusTrap } from '../utils/useFocusTrap.js';
+
 interface ConfirmDialogProps {
   title: string;
   message: string;
@@ -19,10 +23,23 @@ export function ConfirmDialog({
   onConfirm,
   onCancel
 }: ConfirmDialogProps): JSX.Element {
+  const containerRef = useFocusTrap<HTMLDivElement>();
+
+  // Close dialog on Escape
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent): void {
+      if (event.key === 'Escape' && !pending) {
+        onCancel();
+      }
+    }
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onCancel, pending]);
+
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="modal-card">
-        <h3>{title}</h3>
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+      <div className="modal-card" ref={containerRef}>
+        <h3 id="confirm-dialog-title">{title}</h3>
         <p>{message}</p>
         <div className="button-row">
           <button type="button" className="secondary-button" onClick={onCancel} disabled={pending}>

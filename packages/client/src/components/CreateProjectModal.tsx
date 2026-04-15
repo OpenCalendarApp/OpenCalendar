@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { ChevronRight } from 'lucide-react';
 
 import type { CreateProjectRequest, ProjectResponse } from '@opencalendar/shared';
 
 import { apiFetch } from '../api/client.js';
 import { useToast } from '../context/ToastContext.js';
+import { useFocusTrap } from '../utils/useFocusTrap.js';
 
 interface CreateProjectModalProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ interface CreateProjectModalProps {
 
 export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalProps): JSX.Element {
   const { showToast } = useToast();
+  const containerRef = useFocusTrap<HTMLDivElement>();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
@@ -23,6 +25,17 @@ export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalPro
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Close modal on Escape
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent): void {
+      if (event.key === 'Escape' && !pending) {
+        onClose();
+      }
+    }
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose, pending]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -58,9 +71,9 @@ export function CreateProjectModal({ onClose, onCreated }: CreateProjectModalPro
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Create project">
-      <div className="modal-card">
-        <h3>Create Project</h3>
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="create-project-title">
+      <div className="modal-card" ref={containerRef}>
+        <h3 id="create-project-title">Create Project</h3>
         <form onSubmit={(event) => void handleSubmit(event)}>
           <label>
             Name

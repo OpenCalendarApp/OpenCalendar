@@ -397,34 +397,38 @@ export function PublicBookingPage(): JSX.Element {
               {slotsByDay.map((group) => (
                 <div key={group.dayLabel} className="slot-group">
                   <h4>{group.dayLabel}</h4>
-                  <ul className="block-list">
-                    {group.slots.map((slot) => (
-                      <li key={slot.time_block_id}>
-                        <label className="checkbox-label">
-                          <input
-                            type="radio"
-                            name="selected-slot"
-                            checked={bookingMode === 'booking' && selectedSlotId === slot.time_block_id}
-                            onChange={() => {
-                              setSelectedSlotId(slot.time_block_id);
-                              setBookingMode('booking');
-                            }}
-                          />
-                          <span>
-                            <strong>{formatSlotLabel(slot, timeZone)}</strong>
-                            <br />
-                            Remaining: {slot.remaining_slots}
-                            <br />
-                            Engineers:{' '}
-                            {slot.engineers.length > 0
-                              ? slot.engineers
-                                  .map((engineer) => `${engineer.first_name} ${engineer.last_name}`)
-                                  .join(', ')
-                              : 'Unassigned'}
-                          </span>
-                        </label>
-                      </li>
-                    ))}
+                  <ul className="block-list" role="radiogroup" aria-label={`Available slots for ${group.dayLabel}`}>
+                    {group.slots.map((slot) => {
+                      const engineerNames = slot.engineers.length > 0
+                        ? slot.engineers.map((engineer) => `${engineer.first_name} ${engineer.last_name}`).join(', ')
+                        : 'Unassigned';
+                      const slotAriaLabel = `Time slot: ${formatSlotLabel(slot, timeZone)}, ${slot.remaining_slots} remaining, Engineers: ${engineerNames}`;
+                      return (
+                        <li key={slot.time_block_id}>
+                          <label className="checkbox-label slot-available">
+                            <input
+                              type="radio"
+                              name="selected-slot"
+                              aria-label={slotAriaLabel}
+                              checked={bookingMode === 'booking' && selectedSlotId === slot.time_block_id}
+                              onChange={() => {
+                                setSelectedSlotId(slot.time_block_id);
+                                setBookingMode('booking');
+                              }}
+                            />
+                            <span>
+                              <strong>{formatSlotLabel(slot, timeZone)}</strong>
+                              <span className="slot-status-badge slot-status-available">Available</span>
+                              <br />
+                              Remaining: {slot.remaining_slots}
+                              <br />
+                              Engineers:{' '}
+                              {engineerNames}
+                            </span>
+                          </label>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}
@@ -439,43 +443,45 @@ export function PublicBookingPage(): JSX.Element {
               {fullSlotsByDay.map((group) => (
                 <div key={`waitlist-${group.dayLabel}`} className="slot-group">
                   <h4>{group.dayLabel}</h4>
-                  <ul className="block-list">
-                    {group.slots.map((slot) => (
-                      <li key={slot.time_block_id}>
-                        <label className="checkbox-label">
-                          <input
-                            type="radio"
-                            name="selected-slot"
-                            checked={bookingMode === 'waitlist' && selectedSlotId === slot.time_block_id}
-                            onChange={() => {
-                              setSelectedSlotId(slot.time_block_id);
-                              setBookingMode('waitlist');
-                            }}
-                          />
-                          <span>
-                            <strong>{formatSlotLabel(slot, timeZone)}</strong>
-                            <br />
-                            Status: Full
-                            <br />
-                            Waitlist count: {slot.waitlist_count}
-                            <br />
-                            Engineers:{' '}
-                            {slot.engineers.length > 0
-                              ? slot.engineers
-                                  .map((engineer) => `${engineer.first_name} ${engineer.last_name}`)
-                                  .join(', ')
-                              : 'Unassigned'}
-                          </span>
-                        </label>
-                      </li>
-                    ))}
+                  <ul className="block-list" role="radiogroup" aria-label={`Full slots for ${group.dayLabel} (waitlist available)`}>
+                    {group.slots.map((slot) => {
+                      const engineerNames = slot.engineers.length > 0
+                        ? slot.engineers.map((engineer) => `${engineer.first_name} ${engineer.last_name}`).join(', ')
+                        : 'Unassigned';
+                      const slotAriaLabel = `Time slot: ${formatSlotLabel(slot, timeZone)}, Full — join waitlist. ${slot.waitlist_count} on waitlist. Engineers: ${engineerNames}`;
+                      return (
+                        <li key={slot.time_block_id}>
+                          <label className="checkbox-label slot-full">
+                            <input
+                              type="radio"
+                              name="selected-slot"
+                              aria-label={slotAriaLabel}
+                              checked={bookingMode === 'waitlist' && selectedSlotId === slot.time_block_id}
+                              onChange={() => {
+                                setSelectedSlotId(slot.time_block_id);
+                                setBookingMode('waitlist');
+                              }}
+                            />
+                            <span>
+                              <strong>{formatSlotLabel(slot, timeZone)}</strong>
+                              <span className="slot-status-badge slot-status-full">Full</span>
+                              <br />
+                              Waitlist count: {slot.waitlist_count}
+                              <br />
+                              Engineers:{' '}
+                              {engineerNames}
+                            </span>
+                          </label>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}
             </div>
           ) : null}
 
-          {error ? <p className="error">{error}</p> : null}
+          {error ? <p className="error" role="alert">{error}</p> : null}
 
           <div className="button-row">
             <button type="button" className="secondary-button" onClick={() => setStep('password')}>
