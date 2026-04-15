@@ -10,6 +10,7 @@ import { requestContextMiddleware } from './middleware/requestContext.js';
 import { getMetricsSnapshot } from './observability/metrics.js';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
+import availabilitySolverRoutes from './routes/availabilitySolver.js';
 import bookingRoutes from './routes/booking.js';
 import bookingsRoutes from './routes/bookings.js';
 import brandingRoutes from './routes/branding.js';
@@ -71,6 +72,7 @@ function mountApiVersionRoutes(app: express.Express, basePath: '/api' | '/api/v1
   app.use(`${basePath}/setup`, setupRoutes);
   app.use(`${basePath}/admin`, adminRoutes);
   app.use(`${basePath}/projects`, projectRoutes);
+  app.use(`${basePath}/projects`, availabilitySolverRoutes);
   app.use(`${basePath}/time-blocks`, timeBlockRoutes);
   app.use(`${basePath}/schedule`, bookingRoutes);
   app.use(`${basePath}/bookings`, bookingsRoutes);

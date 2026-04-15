@@ -21,6 +21,7 @@ interface AddTimeBlockModalProps {
   userRole: UserRole;
   onClose: () => void;
   onCreated: () => Promise<void>;
+  initialStartTime?: string;
 }
 
 interface EngineerOption {
@@ -141,7 +142,8 @@ export function AddTimeBlockModal({
   project,
   userRole,
   onClose,
-  onCreated
+  onCreated,
+  initialStartTime
 }: AddTimeBlockModalProps): JSX.Element {
   const { showToast } = useToast();
   const { timeZone } = useTimezone();
@@ -151,11 +153,24 @@ export function AddTimeBlockModal({
   const defaultMonth = Number(defaultMonthPart || 1);
   const defaultTime = '09:00';
 
-  const [selectedDates, setSelectedDates] = useState<string[]>([defaultDate]);
-  const [viewMonthStart, setViewMonthStart] = useState(
-    () => new Date(defaultYear, defaultMonth - 1, 1)
-  );
-  const [startTime, setStartTime] = useState(defaultTime);
+  const prefill = useMemo(() => {
+    if (!initialStartTime) return null;
+    const startDate = new Date(initialStartTime);
+    const dateKey = formatDateKey(startDate);
+    const hours = startDate.getHours().toString().padStart(2, '0');
+    const minutes = startDate.getMinutes().toString().padStart(2, '0');
+    return { dateKey, timeValue: `${hours}:${minutes}` };
+  }, [initialStartTime]);
+
+  const [selectedDates, setSelectedDates] = useState<string[]>([prefill?.dateKey ?? defaultDate]);
+  const [viewMonthStart, setViewMonthStart] = useState(() => {
+    if (prefill) {
+      const [yearPart, monthPart] = prefill.dateKey.split('-');
+      return new Date(Number(yearPart || 1970), Number(monthPart || 1) - 1, 1);
+    }
+    return new Date(defaultYear, defaultMonth - 1, 1);
+  });
+  const [startTime, setStartTime] = useState(prefill?.timeValue ?? defaultTime);
   const [slotLengthMinutes, setSlotLengthMinutes] = useState(() =>
     slotLengthOptions.includes(project.session_length_minutes) ? project.session_length_minutes : 60
   );

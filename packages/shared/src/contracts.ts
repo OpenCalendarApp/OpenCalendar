@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import type {
+  availabilitySolverQuerySchema,
   batchTimeBlockItemSchema,
   bookSlotSchema,
   bookingTokenParamsSchema,
@@ -64,3 +65,4 @@ export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;
 export type UpdateBrandingRequest = z.infer<typeof updateBrandingSchema>;
 export type UpdateSessionNotesRequest = z.infer<typeof updateSessionNotesSchema>;
 export type TenantUidParams = z.infer<typeof tenantUidParamsSchema>;
+export type AvailabilitySolverQuery = z.infer<typeof availabilitySolverQuerySchema>;

@@ -286,3 +286,9 @@ export const updateBrandingSchema = z.object({
 export const tenantUidParamsSchema = z.object({
   tenantUid: z.string().trim().uuid()
 });
+
+export const availabilitySolverQuerySchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  limit: z.coerce.number().int().positive().max(50).optional().default(10)
+});

@@ -376,3 +376,15 @@ export interface DashboardStats {
 export interface DashboardStatsResponse {
   stats: DashboardStats;
 }
+
+export interface AvailabilitySuggestion {
+  start_time: string;
+  end_time: string;
+  available_engineers: string[];
+  unavailable_engineers: string[];
+}
+
+export interface AvailabilitySolverResponse {
+  suggestions: AvailabilitySuggestion[];
+  engineers_without_calendar: string[];
+}
