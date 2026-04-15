@@ -39,8 +39,8 @@ export function ToastProvider({ children }: { children: ReactNode }): JSX.Elemen
     [showToast]
   );
 
-  const errorToasts = toasts.filter((t) => t.tone === 'error');
-  const nonErrorToasts = toasts.filter((t) => t.tone !== 'error');
+  const errorToasts = useMemo(() => toasts.filter((t) => t.tone === 'error'), [toasts]);
+  const nonErrorToasts = useMemo(() => toasts.filter((t) => t.tone !== 'error'), [toasts]);
 
   function renderToast(toast: ToastItem): JSX.Element {
     return (
