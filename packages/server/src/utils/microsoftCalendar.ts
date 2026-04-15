@@ -496,3 +496,75 @@ export async function deleteMicrosoftCalendarEvent(args: {
     throw new Error(errorMessage);
   }
 }
+
+export interface BusyInterval {
+  start: string;
+  end: string;
+}
+
+interface CalendarViewEvent {
+  start?: { dateTime?: string; timeZone?: string };
+  end?: { dateTime?: string; timeZone?: string };
+  showAs?: string;
+}
+
+interface CalendarViewResponse {
+  value?: CalendarViewEvent[];
+  '@odata.nextLink'?: string;
+}
+
+export async function fetchCalendarBusyIntervals(args: {
+  accessToken: string;
+  startDateTime: string;
+  endDateTime: string;
+}): Promise<BusyInterval[]> {
+  const busy: BusyInterval[] = [];
+
+  const startIso = new Date(args.startDateTime).toISOString();
+  const endIso = new Date(args.endDateTime).toISOString();
+
+  let url: string | null =
+    `https://graph.microsoft.com/v1.0/me/calendarview` +
+    `?startDateTime=${encodeURIComponent(startIso)}` +
+    `&endDateTime=${encodeURIComponent(endIso)}` +
+    `&$select=start,end,showAs` +
+    `&$top=250` +
+    `&$orderby=start/dateTime`;
+
+  while (url) {
+    const response = await fetch(url, {
+      headers: {
+        authorization: `Bearer ${args.accessToken}`,
+        prefer: 'outlook.timezone="UTC"'
+      }
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json()) as GraphErrorPayload;
+      const errorMessage =
+        payload.error?.message ?? `Microsoft calendarview request failed with status ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    const data = (await response.json()) as CalendarViewResponse;
+
+    for (const event of data.value ?? []) {
+      if (event.showAs === 'free') {
+        continue;
+      }
+
+      const eventStart = event.start?.dateTime;
+      const eventEnd = event.end?.dateTime;
+      if (eventStart && eventEnd) {
+        busy.push({
+          start: new Date(eventStart).toISOString(),
+          end: new Date(eventEnd).toISOString()
+        });
+      }
+    }
+
+    url = data['@odata.nextLink'] ?? null;
+  }
+
+  return busy;
+}

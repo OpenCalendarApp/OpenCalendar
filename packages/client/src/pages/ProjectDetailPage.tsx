@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CalendarX, ClipboardCopy, Inbox, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { CalendarX, ClipboardCopy, Inbox, Pencil, Plus, Save, Trash2, CalendarSearch } from 'lucide-react';
 
 import type {
   Booking,
@@ -14,6 +14,7 @@ import type {
 
 import { apiFetch } from '../api/client.js';
 import { AddTimeBlockModal } from '../components/AddTimeBlockModal.js';
+import { AvailabilitySolverModal } from '../components/AvailabilitySolverModal.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { TimeZoneSelect } from '../components/TimeZoneSelect.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -149,6 +150,8 @@ export function ProjectDetailPage(): JSX.Element {
   const [blockDeletePendingId, setBlockDeletePendingId] = useState<number | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [isAddTimeBlockModalOpen, setIsAddTimeBlockModalOpen] = useState(false);
+  const [isSolverModalOpen, setIsSolverModalOpen] = useState(false);
+  const [solverPrefill, setSolverPrefill] = useState<{ startTime: string } | null>(null);
   const [editBlockState, setEditBlockState] = useState<EditTimeBlockState | null>(null);
   const [editPending, setEditPending] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
@@ -158,6 +161,17 @@ export function ProjectDetailPage(): JSX.Element {
   const canCreateBlocks = Boolean(
     user && (user.role === 'pm' || user.role === 'admin' || user.role === 'engineer')
   );
+
+  const uniqueEngineerCount = useMemo(() => {
+    if (!project) return 0;
+    const ids = new Set<number>();
+    for (const block of project.time_blocks) {
+      for (const eng of block.engineers) {
+        ids.add(eng.id);
+      }
+    }
+    return ids.size;
+  }, [project]);
 
   const loadProject = useCallback(async () => {
     if (!id) {
@@ -604,15 +618,26 @@ export function ProjectDetailPage(): JSX.Element {
             <h3>Time Blocks</h3>
             <p className="hint">Displayed in {timeZone}</p>
           </div>
-          {canCreateBlocks ? (
-            <button
-              type="button"
-              className="header-button"
-              onClick={() => setIsAddTimeBlockModalOpen(true)}
-            >
-              <Plus size={16} /> {isPm ? 'Add Time Blocks' : 'Add Personal Block'}
-            </button>
-          ) : null}
+          <div className="header-actions">
+            {uniqueEngineerCount >= 2 && isPm ? (
+              <button
+                type="button"
+                className="header-button solver-trigger-button"
+                onClick={() => setIsSolverModalOpen(true)}
+              >
+                <CalendarSearch size={16} /> Find a Time for Everyone
+              </button>
+            ) : null}
+            {canCreateBlocks ? (
+              <button
+                type="button"
+                className="header-button"
+                onClick={() => setIsAddTimeBlockModalOpen(true)}
+              >
+                <Plus size={16} /> {isPm ? 'Add Time Blocks' : 'Add Personal Block'}
+              </button>
+            ) : null}
+          </div>
         </div>
         <TimeZoneSelect label="Display Timezone" />
 
@@ -739,8 +764,24 @@ export function ProjectDetailPage(): JSX.Element {
         <AddTimeBlockModal
           project={project}
           userRole={user.role}
-          onClose={() => setIsAddTimeBlockModalOpen(false)}
+          onClose={() => {
+            setIsAddTimeBlockModalOpen(false);
+            setSolverPrefill(null);
+          }}
           onCreated={loadProject}
+          initialStartTime={solverPrefill?.startTime}
+        />
+      ) : null}
+
+      {isSolverModalOpen ? (
+        <AvailabilitySolverModal
+          project={project}
+          onClose={() => setIsSolverModalOpen(false)}
+          onCreateBlock={(startTime) => {
+            setIsSolverModalOpen(false);
+            setSolverPrefill({ startTime });
+            setIsAddTimeBlockModalOpen(true);
+          }}
         />
       ) : null}
 
