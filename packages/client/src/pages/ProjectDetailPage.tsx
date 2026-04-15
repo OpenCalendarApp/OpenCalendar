@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CalendarX, ClipboardCopy, Inbox, Pencil, Plus, Save, Trash2, CalendarSearch } from 'lucide-react';
+import { CalendarX, ClipboardCopy, Download, Inbox, Pencil, Plus, Save, Trash2, CalendarSearch } from 'lucide-react';
 
 import type {
   Booking,
@@ -12,7 +12,7 @@ import type {
   UpdateProjectRequest
 } from '@opencalendar/shared';
 
-import { apiFetch } from '../api/client.js';
+import { apiFetch, apiDownload } from '../api/client.js';
 import { AddTimeBlockModal } from '../components/AddTimeBlockModal.js';
 import { AvailabilitySolverModal } from '../components/AvailabilitySolverModal.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
@@ -155,6 +155,7 @@ export function ProjectDetailPage(): JSX.Element {
   const [editBlockState, setEditBlockState] = useState<EditTimeBlockState | null>(null);
   const [editPending, setEditPending] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [exportPending, setExportPending] = useState(false);
 
   const isPm = user?.role === 'pm' || user?.role === 'admin';
 
@@ -396,6 +397,20 @@ export function ProjectDetailPage(): JSX.Element {
     } finally {
       setBlockDeletePendingId(null);
       setConfirmAction(null);
+    }
+  }
+
+  async function handleExportCsv(): Promise<void> {
+    if (!project) return;
+    setExportPending(true);
+    try {
+      await apiDownload(`/projects/${project.id}/export`);
+      showToast('CSV exported.', 'success');
+    } catch (exportError) {
+      const message = exportError instanceof Error ? exportError.message : 'Export failed';
+      showToast(message, 'error');
+    } finally {
+      setExportPending(false);
     }
   }
 
@@ -714,7 +729,19 @@ export function ProjectDetailPage(): JSX.Element {
       </div>
 
       <div className="detail-card">
-        <h3>Signed Up Clients</h3>
+        <div className="header-row">
+          <h3>Signed Up Clients</h3>
+          {signupRows.length > 0 ? (
+            <button
+              type="button"
+              className="header-button export-button"
+              disabled={exportPending}
+              onClick={() => void handleExportCsv()}
+            >
+              <Download size={16} /> {exportPending ? 'Exporting...' : 'Export CSV'}
+            </button>
+          ) : null}
+        </div>
         {signupRows.length === 0 ? (
           <div className="empty-state">
             <Inbox size={24} />

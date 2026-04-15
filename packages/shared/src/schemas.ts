@@ -292,3 +292,9 @@ export const availabilitySolverQuerySchema = z.object({
   to: z.string().datetime().optional(),
   limit: z.coerce.number().int().positive().max(50).optional().default(10)
 });
+
+export const exportSessionsQuerySchema = z.object({
+  from: z.string().date().optional(),
+  to: z.string().date().optional(),
+  status: z.enum(['all', 'active', 'cancelled']).optional().default('all')
+});

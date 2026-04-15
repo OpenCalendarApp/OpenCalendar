@@ -15,6 +15,7 @@ import bookingRoutes from './routes/booking.js';
 import bookingsRoutes from './routes/bookings.js';
 import brandingRoutes from './routes/branding.js';
 import dashboardRoutes from './routes/dashboard.js';
+import { projectExportRouter, globalExportRouter } from './routes/export.js';
 import projectRoutes from './routes/projects.js';
 import setupRoutes from './routes/setup.js';
 import timeBlockRoutes from './routes/timeBlocks.js';
@@ -73,6 +74,8 @@ function mountApiVersionRoutes(app: express.Express, basePath: '/api' | '/api/v1
   app.use(`${basePath}/admin`, adminRoutes);
   app.use(`${basePath}/projects`, projectRoutes);
   app.use(`${basePath}/projects`, availabilitySolverRoutes);
+  app.use(`${basePath}/projects`, projectExportRouter);
+  app.use(`${basePath}/export`, globalExportRouter);
   app.use(`${basePath}/time-blocks`, timeBlockRoutes);
   app.use(`${basePath}/schedule`, bookingRoutes);
   app.use(`${basePath}/bookings`, bookingsRoutes);

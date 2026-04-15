@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import type {
   availabilitySolverQuerySchema,
   batchTimeBlockItemSchema,
+  exportSessionsQuerySchema,
   bookSlotSchema,
   bookingTokenParamsSchema,
   createProjectSchema,
@@ -66,3 +67,4 @@ export type UpdateBrandingRequest = z.infer<typeof updateBrandingSchema>;
 export type UpdateSessionNotesRequest = z.infer<typeof updateSessionNotesSchema>;
 export type TenantUidParams = z.infer<typeof tenantUidParamsSchema>;
 export type AvailabilitySolverQuery = z.infer<typeof availabilitySolverQuerySchema>;
+export type ExportSessionsQuery = z.infer<typeof exportSessionsQuerySchema>;
