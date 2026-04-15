@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CalendarX, ClipboardCopy, Inbox, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 
 import type {
+  Booking,
   ProjectDetail,
   ProjectDetailResponse,
   ProjectResponse,
@@ -45,6 +46,7 @@ interface ProjectSignupRow {
   end_time: string;
   booked_at: string;
   cancelled_at: string | null;
+  session_notes: string | null;
 }
 
 interface EditTimeBlockState {
@@ -75,6 +77,60 @@ function toFormState(project: ProjectDetail): ProjectFormState {
     isActive: project.is_active,
     signupPassword: ''
   };
+}
+
+function SessionNotesCell({ bookingId, initialNotes }: { bookingId: number; initialNotes: string | null }): JSX.Element {
+  const [notes, setNotes] = useState(initialNotes ?? '');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveNotes = useCallback(async (value: string) => {
+    setSaveStatus('saving');
+    try {
+      await apiFetch<Booking>(`/bookings/${bookingId}/notes`, {
+        method: 'PUT',
+        body: JSON.stringify({ session_notes: value })
+      });
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('idle');
+    }
+  }, [bookingId]);
+
+  const handleChange = useCallback((value: string) => {
+    setNotes(value);
+    setSaveStatus('idle');
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      void saveNotes(value);
+    }, 800);
+  }, [saveNotes]);
+
+  const handleBlur = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    void saveNotes(notes);
+  }, [notes, saveNotes]);
+
+  return (
+    <div className="session-notes-cell">
+      <textarea
+        className="session-notes-input"
+        value={notes}
+        onChange={(event) => handleChange(event.target.value)}
+        onBlur={handleBlur}
+        placeholder="Add notes about this session..."
+        rows={2}
+        maxLength={10000}
+      />
+      {saveStatus === 'saving' && <span className="session-notes-status hint">Saving...</span>}
+      {saveStatus === 'saved' && <span className="session-notes-status hint">Saved</span>}
+    </div>
+  );
 }
 
 export function ProjectDetailPage(): JSX.Element {
@@ -152,7 +208,8 @@ export function ProjectDetailPage(): JSX.Element {
           start_time: block.start_time,
           end_time: block.end_time,
           booked_at: booking.booked_at,
-          cancelled_at: booking.cancelled_at
+          cancelled_at: booking.cancelled_at,
+          session_notes: booking.session_notes
         }))
       )
       .sort((left, right) => {
@@ -648,6 +705,7 @@ export function ProjectDetailPage(): JSX.Element {
                 <th>Slot</th>
                 <th>Booked</th>
                 <th>Status</th>
+                <th>Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -663,6 +721,13 @@ export function ProjectDetailPage(): JSX.Element {
                   </td>
                   <td>{formatDateTimeInTimeZone(row.booked_at, timeZone)}</td>
                   <td>{row.cancelled_at ? 'Cancelled' : 'Active'}</td>
+                  <td>
+                    {row.cancelled_at ? (
+                      <span className="hint">{row.session_notes || '—'}</span>
+                    ) : (
+                      <SessionNotesCell bookingId={row.id} initialNotes={row.session_notes} />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -72,6 +72,7 @@ export interface Booking {
   booking_token: string;
   booked_at: string;
   cancelled_at: string | null;
+  session_notes: string | null;
 }
 
 export interface AvailableSlot {

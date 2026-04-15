@@ -177,7 +177,8 @@ router.get('/:id', authMiddleware, asyncHandler(async (req, res) => {
         client_phone,
         booking_token,
         booked_at,
-        cancelled_at
+        cancelled_at,
+        session_notes
       FROM bookings
       WHERE time_block_id = ANY($1::int[])
         AND tenant_id = $2

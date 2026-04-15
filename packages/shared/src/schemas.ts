@@ -261,6 +261,10 @@ export const rescheduleBookingSchema = z.object({
   new_time_block_id: positiveInt
 });
 
+export const updateSessionNotesSchema = z.object({
+  session_notes: z.string().max(10000)
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email()
 });

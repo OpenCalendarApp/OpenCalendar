@@ -870,3 +870,38 @@ h3 > svg {
   font-size: 0.85rem;
   padding: 0.4rem 1rem;
 }
+
+/* Session Notes */
+.session-notes-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 180px;
+}
+
+.session-notes-input {
+  width: 100%;
+  min-height: 3rem;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.session-notes-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+  border-color: var(--color-primary);
+}
+
+.session-notes-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.session-notes-status {
+  font-size: var(--font-size-xs);
+}
