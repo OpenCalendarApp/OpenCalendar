@@ -26,6 +26,7 @@ import type {
   updateUserStatusSchema,
   updateProjectSchema,
   updateBrandingSchema,
+  updateSessionNotesSchema,
   tenantUidParamsSchema
 } from './schemas.js';
 
@@ -61,4 +62,5 @@ export type ForgotPasswordRequest = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;
 
 export type UpdateBrandingRequest = z.infer<typeof updateBrandingSchema>;
+export type UpdateSessionNotesRequest = z.infer<typeof updateSessionNotesSchema>;
 export type TenantUidParams = z.infer<typeof tenantUidParamsSchema>;

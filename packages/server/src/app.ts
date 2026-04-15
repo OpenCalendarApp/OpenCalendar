@@ -11,6 +11,7 @@ import { getMetricsSnapshot } from './observability/metrics.js';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import bookingRoutes from './routes/booking.js';
+import bookingsRoutes from './routes/bookings.js';
 import brandingRoutes from './routes/branding.js';
 import dashboardRoutes from './routes/dashboard.js';
 import projectRoutes from './routes/projects.js';
@@ -72,6 +73,7 @@ function mountApiVersionRoutes(app: express.Express, basePath: '/api' | '/api/v1
   app.use(`${basePath}/projects`, projectRoutes);
   app.use(`${basePath}/time-blocks`, timeBlockRoutes);
   app.use(`${basePath}/schedule`, bookingRoutes);
+  app.use(`${basePath}/bookings`, bookingsRoutes);
   app.use(`${basePath}/branding`, brandingRoutes);
   app.use(`${basePath}/dashboard`, dashboardRoutes);
 }

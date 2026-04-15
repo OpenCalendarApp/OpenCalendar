@@ -209,6 +209,9 @@ ADD COLUMN IF NOT EXISTS pii_redacted_at TIMESTAMPTZ;
 ALTER TABLE IF EXISTS bookings
 ALTER COLUMN booking_token SET DEFAULT app_random_token_64();
 
+ALTER TABLE IF EXISTS bookings
+ADD COLUMN IF NOT EXISTS session_notes TEXT;
+
 CREATE TABLE IF NOT EXISTS waitlist_entries (
   id BIGSERIAL PRIMARY KEY,
   tenant_id INTEGER NOT NULL DEFAULT 1 REFERENCES tenants(id),
