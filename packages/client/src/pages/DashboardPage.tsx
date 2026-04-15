@@ -1,8 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, FolderOpen, Link2Off, Plus } from 'lucide-react';
+import {
+  Activity,
+  Calendar,
+  CalendarClock,
+  Clock,
+  FolderOpen,
+  Link2Off,
+  Plus,
+  TrendingUp,
+  Users
+} from 'lucide-react';
 
 import type {
+  DashboardStats,
+  DashboardStatsResponse,
   MicrosoftCalendarAuthUrlResponse,
   MicrosoftCalendarStatusResponse,
   ProjectSummary,
@@ -30,6 +42,7 @@ export function DashboardPage(): JSX.Element {
   const [showOnboarding, setShowOnboarding] = useState(() => user?.onboarding_completed_at === null || user?.onboarding_completed_at === undefined);
   const isEngineer = user?.role === 'engineer';
   const canManageProjects = user?.role === 'pm' || user?.role === 'admin';
+  const [dashStats, setDashStats] = useState<DashboardStats | null>(null);
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -48,6 +61,12 @@ export function DashboardPage(): JSX.Element {
   useEffect(() => {
     void loadProjects();
   }, [loadProjects]);
+
+  useEffect(() => {
+    apiFetch<DashboardStatsResponse>('/dashboard/stats')
+      .then((response) => setDashStats(response.stats))
+      .catch(() => { /* stats are non-critical */ });
+  }, []);
 
   const loadCalendarStatus = useCallback(async () => {
     if (!isEngineer) {
@@ -150,6 +169,41 @@ export function DashboardPage(): JSX.Element {
         <div className="detail-card status-card">
           <p className="error">{error}</p>
         </div>
+      ) : null}
+
+      {dashStats ? (
+        <ul className="metrics-hero">
+          <li className="metric-card">
+            <Activity size={20} className="metric-icon" />
+            <span className="metric-value">{dashStats.active_projects}</span>
+            <span className="metric-label">Active Projects</span>
+          </li>
+          <li className="metric-card">
+            <CalendarClock size={20} className="metric-icon" />
+            <span className="metric-value">{dashStats.sessions_this_week}</span>
+            <span className="metric-label">Sessions This Week</span>
+          </li>
+          <li className="metric-card">
+            <TrendingUp size={20} className="metric-icon" />
+            <span className="metric-value">{dashStats.pending_bookings}</span>
+            <span className="metric-label">Pending Bookings</span>
+          </li>
+          <li className="metric-card">
+            <Clock size={20} className="metric-icon" />
+            <span className="metric-value">{dashStats.upcoming_next_24h}</span>
+            <span className="metric-label">Next 24 Hours</span>
+          </li>
+          <li className="metric-card">
+            <Users size={20} className="metric-icon" />
+            <span className="metric-value">{dashStats.team_members}</span>
+            <span className="metric-label">Team Members</span>
+          </li>
+          <li className="metric-card">
+            <Calendar size={20} className="metric-icon" />
+            <span className="metric-value">{dashStats.total_bookings_this_month}</span>
+            <span className="metric-label">Bookings This Month</span>
+          </li>
+        </ul>
       ) : null}
 
       {showOnboarding ? (
