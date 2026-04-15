@@ -9,6 +9,7 @@ import type {
 
 import { apiFetch } from '../api/client.js';
 import { useTimezone } from '../context/TimezoneContext.js';
+import { useFocusTrap } from '../utils/useFocusTrap.js';
 
 interface AvailabilitySolverModalProps {
   project: ProjectDetail;
@@ -22,10 +23,22 @@ export function AvailabilitySolverModal({
   onCreateBlock
 }: AvailabilitySolverModalProps): JSX.Element {
   const { timeZone } = useTimezone();
+  const containerRef = useFocusTrap<HTMLDivElement>();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AvailabilitySolverResponse | null>(null);
+
+  // Close modal on Escape
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    }
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,11 +99,11 @@ export function AvailabilitySolverModal({
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Availability Solver">
-      <div className="modal-card solver-modal">
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="availability-solver-title">
+      <div className="modal-card solver-modal" ref={containerRef}>
         <div className="solver-header">
-          <CalendarSearch size={20} />
-          <h3>Find a Time for Everyone</h3>
+          <CalendarSearch size={20} aria-hidden="true" />
+          <h3 id="availability-solver-title">Find a Time for Everyone</h3>
         </div>
 
         <p className="hint solver-description">

@@ -39,23 +39,49 @@ export function ToastProvider({ children }: { children: ReactNode }): JSX.Elemen
     [showToast]
   );
 
+  const errorToasts = toasts.filter((t) => t.tone === 'error');
+  const nonErrorToasts = toasts.filter((t) => t.tone !== 'error');
+
+  function renderToast(toast: ToastItem): JSX.Element {
+    return (
+      <div key={toast.id} className={`toast toast-${toast.tone}`}>
+        <span className="toast-content">
+          {toast.tone === 'success' ? <CheckCircle size={16} aria-hidden="true" /> : null}
+          {toast.tone === 'error' ? <AlertCircle size={16} aria-hidden="true" /> : null}
+          {toast.tone === 'info' ? <Info size={16} aria-hidden="true" /> : null}
+          {toast.message}
+        </span>
+        <button
+          type="button"
+          className="toast-close"
+          aria-label="Dismiss notification"
+          onClick={() => dismissToast(toast.id)}
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="toast-stack" aria-live="polite" aria-atomic="true">
-        {toasts.map((toast) => (
-          <div key={toast.id} className={`toast toast-${toast.tone}`}>
-            <span className="toast-content">
-              {toast.tone === 'success' ? <CheckCircle size={16} /> : null}
-              {toast.tone === 'error' ? <AlertCircle size={16} /> : null}
-              {toast.tone === 'info' ? <Info size={16} /> : null}
-              {toast.message}
-            </span>
-            <button type="button" className="toast-close" onClick={() => dismissToast(toast.id)}>
-              <X size={16} />
-            </button>
-          </div>
-        ))}
+      {/* Error toasts use role="alert" (assertive) so screen readers announce them immediately */}
+      <div
+        className="toast-stack toast-stack-errors"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        {errorToasts.map(renderToast)}
+      </div>
+      {/* Success / info toasts use aria-live="polite" to avoid interrupting the user */}
+      <div
+        className="toast-stack toast-stack-info"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {nonErrorToasts.map(renderToast)}
       </div>
     </ToastContext.Provider>
   );
