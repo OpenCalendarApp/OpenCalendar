@@ -20,6 +20,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Built-in load testing script and documentation (`scripts/load-test.mjs`, `docs/LOAD_TESTING.md`).
 - Time block editing support across the API, shared validation schemas, and project detail UI, including signed-up client visibility and engineer/max-signup updates.
 - Brand logo component and bundled Calendar Genie SVG assets for horizontal, stacked, and icon treatments in the client.
+- Complete rebranding from CalendarGenie to OpenCalendar across documentation and configuration.
+- Azure deployment configuration with container app YAML specs, Bicep modules, and environment variable support.
+- GitHub Actions CI/CD workflows for continuous integration, Docker build-push, and deployment.
+- Password reset flow with forgot-password and token-based reset endpoints, plus frontend pages.
+- Onboarding wizard component guiding new users through project setup.
+- Visual step progress bar for the public booking flow.
+- Progressive disclosure in the project creation modal for advanced settings.
+- Updated tagline and user-facing copy across the application.
+- CSS design tokens for consistent styling (`--color-*`, `--space-*`, `--font-size-*` variables).
+- Lucide Icons integration replacing inline SVGs across the UI.
+- Scheduled booking reminder emails (24h and 1h before session) via background job queue.
+- White-label booking pages with per-tenant logo and accent color support.
+- Dashboard metrics hero section with 6 real-time stat cards (active projects, sessions this week, pending bookings, next 24h, team members, bookings this month).
+- Session notes on bookings — `PUT /api/v1/bookings/:id/notes` endpoint with RBAC and auto-save textarea on ProjectDetailPage (#17).
+- Smart Availability Solver — `GET /api/v1/projects/:id/availability-solver` endpoint that queries Microsoft Graph calendar data to find windows where all assigned engineers are free, with 5-minute cache and frontend modal for one-click time block creation (#16).
+- Session Reporting CSV Export — `GET /api/v1/projects/:id/export` (per-project) and `GET /api/v1/export/sessions` (cross-project, PM/admin only) with date range and status filters, PII redaction for scrubbed bookings, and frontend download buttons on ProjectDetailPage and DashboardPage (#18).
 
 ### Changed
 - API routing supports both legacy (`/api/*`) and versioned (`/api/v1/*`) routes.
