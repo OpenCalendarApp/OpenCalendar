@@ -418,11 +418,9 @@ export function AddTimeBlockModal({
             <div className="calendar-grid" role="grid" aria-label="Date picker">
               {calendarDayCells.map((cell) => {
                 const isSelected = selectedDates.includes(cell.dateKey);
-                const label = [
-                  formatDateLabel(cell.dateKey),
-                  cell.isToday ? '(today)' : '',
-                  isSelected ? '(selected)' : ''
-                ].filter(Boolean).join(' ');
+                const labelParts = [formatDateLabel(cell.dateKey)];
+                if (cell.isToday) labelParts.push('Today');
+                const label = labelParts.join(', ');
                 return (
                   <button
                     key={cell.dateKey}

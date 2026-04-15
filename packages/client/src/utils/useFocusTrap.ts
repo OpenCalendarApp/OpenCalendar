@@ -28,17 +28,23 @@ export function useFocusTrap<T extends HTMLElement>(): React.RefObject<T> {
     // Remember the element that was focused before this modal opened
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
-    // Move focus to the first focusable element inside the container
+    // Move focus to the first focusable element inside the container.
+    // Non-null assertion is safe: the length check guarantees an element exists.
+    // (noUncheckedIndexedAccess requires explicit assertion even after a length guard.)
     const focusableElements = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
     if (focusableElements.length > 0) {
-      focusableElements[0]?.focus();
+      focusableElements[0]!.focus();
     }
+
+    // Capture container in a variable that TypeScript can treat as non-null inside the closure.
+    // The closure is only registered while the element is mounted, so `container` is always valid.
+    const safeContainer = container;
 
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key !== 'Tab') return;
 
       const elements = Array.from(
-        container!.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)
+        safeContainer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)
       );
       if (elements.length === 0) return;
 
