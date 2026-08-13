@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Activity,
+  ArrowRight,
   Calendar,
-  CalendarClock,
-  Clock,
   Download,
   FolderOpen,
   Link2Off,
-  Plus,
-  TrendingUp,
-  Users
+  Plus
 } from 'lucide-react';
 
 import type {
@@ -199,32 +195,26 @@ export function DashboardPage(): JSX.Element {
       {dashStats ? (
         <ul className="metrics-hero">
           <li className="metric-card">
-            <Activity size={20} className="metric-icon" />
             <span className="metric-value">{dashStats.active_projects}</span>
             <span className="metric-label">Active Projects</span>
           </li>
           <li className="metric-card">
-            <CalendarClock size={20} className="metric-icon" />
             <span className="metric-value">{dashStats.sessions_this_week}</span>
             <span className="metric-label">Sessions This Week</span>
           </li>
           <li className="metric-card">
-            <TrendingUp size={20} className="metric-icon" />
             <span className="metric-value">{dashStats.pending_bookings}</span>
             <span className="metric-label">Pending Bookings</span>
           </li>
           <li className="metric-card">
-            <Clock size={20} className="metric-icon" />
             <span className="metric-value">{dashStats.upcoming_next_24h}</span>
             <span className="metric-label">Next 24 Hours</span>
           </li>
           <li className="metric-card">
-            <Users size={20} className="metric-icon" />
             <span className="metric-value">{dashStats.team_members}</span>
             <span className="metric-label">Team Members</span>
           </li>
           <li className="metric-card">
-            <Calendar size={20} className="metric-icon" />
             <span className="metric-value">{dashStats.total_bookings_this_month}</span>
             <span className="metric-label">Bookings This Month</span>
           </li>
@@ -295,22 +285,48 @@ export function DashboardPage(): JSX.Element {
         </div>
       ) : null}
 
-      <ul className="project-grid">
-        {projects.map((project) => (
-          <li key={project.id}>
-            <h3>
-              <Link to={`/projects/${project.id}`} className="inline-link">
-                {project.name}
-              </Link>
-            </h3>
-            <p>{project.description || 'No description yet.'}</p>
-            <small>
-              {project.session_length_minutes} min sessions • {project.time_block_count} blocks •{' '}
-              {project.active_booking_count} active bookings
-            </small>
-          </li>
-        ))}
-      </ul>
+      {projects.length > 0 ? (
+        <div className="detail-card">
+          <table className="block-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Session</th>
+                <th>Blocks</th>
+                <th>Bookings</th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((project) => (
+                <tr key={project.id}>
+                  <td>
+                    <Link to={`/projects/${project.id}`} className="inline-link">
+                      {project.name}
+                    </Link>
+                    <br />
+                    <span className="hint">{project.description || 'No description yet.'}</span>
+                  </td>
+                  <td>{project.session_length_minutes} min</td>
+                  <td>{project.time_block_count}</td>
+                  <td>{project.active_booking_count} active</td>
+                  <td>
+                    <span className={project.is_active ? 'tag tag-accent' : 'tag tag-neutral'}>
+                      {project.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td>
+                    <Link to={`/projects/${project.id}`} className="inline-link">
+                      Open <ArrowRight size={14} />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
 
       {isCreateModalOpen ? (
         <CreateProjectModal

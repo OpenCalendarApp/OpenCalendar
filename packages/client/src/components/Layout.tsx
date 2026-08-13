@@ -9,30 +9,30 @@ export function Layout(): JSX.Element {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <Link to="/dashboard" className="brand-link" aria-label="OpenCalendar dashboard">
-            <BrandLogo className="brand-logo sidebar-logo" />
-          </Link>
-          <p className="brand-subtitle">Team scheduling built for how consultants work.</p>
-        </div>
-        {user ? (
-          <p className="user-badge">
-            {user.first_name} {user.last_name} ({user.role.toUpperCase()})
-          </p>
-        ) : null}
-        <nav>
-          <Link to="/dashboard"><LayoutDashboard size={20} /> Dashboard</Link>
-          {user?.role === 'admin' ? <Link to="/admin"><Shield size={20} /> Admin Overview</Link> : null}
-          {user?.role === 'admin' ? <Link to="/admin/branding"><Palette size={20} /> Branding</Link> : null}
-          {user?.role === 'admin' ? <Link to="/admin/audit"><ScrollText size={20} /> Audit Log</Link> : null}
-          {user?.role === 'admin' ? <Link to="/admin/sso"><ShieldCheck size={20} /> SSO (OIDC)</Link> : null}
-          {user?.role === 'admin' ? <Link to="/admin/users"><Users size={20} /> Admin Users</Link> : null}
+      <header className="topnav">
+        <Link to="/dashboard" className="brand-link topnav-brand" aria-label="OpenCalendar dashboard">
+          <BrandLogo className="brand-logo sidebar-logo" variant="horizontal" />
+        </Link>
+        <nav className="topnav-links">
+          <Link to="/dashboard"><LayoutDashboard size={16} /> Dashboard</Link>
+          {user?.role === 'admin' ? <Link to="/admin"><Shield size={16} /> Admin</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/branding"><Palette size={16} /> Branding</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/audit"><ScrollText size={16} /> Audit Log</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/sso"><ShieldCheck size={16} /> SSO (OIDC)</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin/users"><Users size={16} /> Users</Link> : null}
         </nav>
-        <button type="button" onClick={logout}>
-          <LogOut size={16} /> Logout
-        </button>
-      </aside>
+        <div className="topnav-user">
+          {user ? (
+            <>
+              <span className="topnav-user-name">{user.first_name} {user.last_name}</span>
+              <span className="user-badge">{user.role.toUpperCase()}</span>
+            </>
+          ) : null}
+          <button type="button" className="secondary-button small-button" onClick={logout}>
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
+      </header>
       <main className="content">
         <Outlet />
       </main>

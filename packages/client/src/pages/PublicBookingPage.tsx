@@ -335,8 +335,8 @@ export function PublicBookingPage(): JSX.Element {
 
   return (
     <section className="public-booking-page" style={brandStyle}>
-      <div className="detail-card">
-        <div className="public-brand-bar">
+      <div className="booking-shell">
+        <aside className="booking-poster">
           {branding?.logo_url ? (
             <img
               className="brand-logo public-brand-logo"
@@ -346,14 +346,17 @@ export function PublicBookingPage(): JSX.Element {
           ) : (
             <BrandLogo className="brand-logo public-brand-logo" />
           )}
-          <p className="hint public-brand-copy">Simple, professional scheduling — powered by OpenCalendar.</p>
-        </div>
-        <h2>{projectResponse.project.name}</h2>
-        <p>{projectResponse.project.description || 'No project description provided.'}</p>
-        <TimeZoneSelect label="Display Timezone" />
-      </div>
-
-      <BookingProgressBar current={step} />
+          <div>
+            <span className="booking-poster-eyebrow">You are booking</span>
+            <div className="booking-poster-title">{projectResponse.project.name}</div>
+            <p className="booking-poster-copy">
+              {projectResponse.project.description || 'No project description provided.'}
+            </p>
+          </div>
+          <TimeZoneSelect label="Display Timezone" />
+          <BookingProgressBar current={step} />
+        </aside>
+        <div className="booking-panel">
 
       {step === 'password' ? (
         <form className="detail-card" onSubmit={(event) => {
@@ -611,6 +614,8 @@ export function PublicBookingPage(): JSX.Element {
           </div>
         </div>
       ) : null}
+        </div>
+      </div>
     </section>
   );
 }

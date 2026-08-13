@@ -132,7 +132,12 @@ export function OnboardingWizard({
       </div>
 
       <div className="onboarding-progress">
-        <div className="onboarding-progress-bar" style={{ width: `${(completedCount / 4) * 100}%` }} />
+        {[0, 1, 2, 3].map((segmentIndex) => (
+          <div
+            key={segmentIndex}
+            className={`onboarding-progress-segment${segmentIndex < completedCount ? ' filled' : ''}`}
+          />
+        ))}
       </div>
 
       <ol className="onboarding-steps">

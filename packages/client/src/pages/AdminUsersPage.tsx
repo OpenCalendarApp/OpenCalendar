@@ -128,27 +128,40 @@ export function AdminUsersPage(): JSX.Element {
       </div>
 
       <div className="detail-card">
-        <div className="header-row">
-          <label>
-            Role Filter
-            <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as 'all' | UserRole)}>
-              <option value="all">All roles</option>
+        <div className="header-row" style={{ border: 'none', margin: 0, padding: 0 }}>
+          <div>
+            <label>Role Filter</label>
+            <div className="seg">
+              <label className={`seg-opt${roleFilter === 'all' ? ' checked' : ''}`}>
+                <input type="radio" name="role-filter" checked={roleFilter === 'all'} onChange={() => setRoleFilter('all')} />
+                <span>All</span>
+              </label>
               {roleOptions.map((role) => (
-                <option key={role} value={role}>
-                  {role.toUpperCase()}
-                </option>
+                <label key={role} className={`seg-opt${roleFilter === role ? ' checked' : ''}`}>
+                  <input type="radio" name="role-filter" checked={roleFilter === role} onChange={() => setRoleFilter(role)} />
+                  <span>{role.toUpperCase()}</span>
+                </label>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
 
-          <label>
-            Status Filter
-            <select value={activeFilter} onChange={(event) => setActiveFilter(event.target.value as ActiveFilter)}>
-              <option value="all">All statuses</option>
-              <option value="active">Active only</option>
-              <option value="inactive">Inactive only</option>
-            </select>
-          </label>
+          <div>
+            <label>Status Filter</label>
+            <div className="seg">
+              <label className={`seg-opt${activeFilter === 'all' ? ' checked' : ''}`}>
+                <input type="radio" name="status-filter" checked={activeFilter === 'all'} onChange={() => setActiveFilter('all')} />
+                <span>All</span>
+              </label>
+              <label className={`seg-opt${activeFilter === 'active' ? ' checked' : ''}`}>
+                <input type="radio" name="status-filter" checked={activeFilter === 'active'} onChange={() => setActiveFilter('active')} />
+                <span>Active</span>
+              </label>
+              <label className={`seg-opt${activeFilter === 'inactive' ? ' checked' : ''}`}>
+                <input type="radio" name="status-filter" checked={activeFilter === 'inactive'} onChange={() => setActiveFilter('inactive')} />
+                <span>Inactive</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -189,30 +202,40 @@ export function AdminUsersPage(): JSX.Element {
                   <td>{user.first_name} {user.last_name}</td>
                   <td>{user.email}</td>
                   <td>
-                    <select
-                      value={draftRoles[user.id] ?? user.role}
-                      onChange={(event) =>
-                        setDraftRoles((prev) => ({ ...prev, [user.id]: event.target.value as UserRole }))
-                      }
-                    >
-                      {roleOptions.map((role) => (
-                        <option key={role} value={role}>
-                          {role.toUpperCase()}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="seg">
+                      {roleOptions.map((role) => {
+                        const current = draftRoles[user.id] ?? user.role;
+                        return (
+                          <label key={role} className={`seg-opt${current === role ? ' checked' : ''}`}>
+                            <input
+                              type="radio"
+                              name={`role-${user.id}`}
+                              checked={current === role}
+                              onChange={() => setDraftRoles((prev) => ({ ...prev, [user.id]: role }))}
+                            />
+                            <span>{role.toUpperCase()}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </td>
                   <td>
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={draftIsActive[user.id] ?? user.is_active}
-                        onChange={(event) =>
-                          setDraftIsActive((prev) => ({ ...prev, [user.id]: event.target.checked }))
-                        }
-                      />
+                    <span className={(draftIsActive[user.id] ?? user.is_active) ? 'tag tag-accent' : 'tag tag-neutral'}>
                       {(draftIsActive[user.id] ?? user.is_active) ? 'Active' : 'Inactive'}
-                    </label>
+                    </span>
+                    <button
+                      type="button"
+                      className="secondary-button small-button"
+                      style={{ marginTop: '6px' }}
+                      onClick={() =>
+                        setDraftIsActive((prev) => ({
+                          ...prev,
+                          [user.id]: !(prev[user.id] ?? user.is_active)
+                        }))
+                      }
+                    >
+                      Toggle
+                    </button>
                   </td>
                   <td>{new Date(user.created_at).toLocaleString()}</td>
                   <td>

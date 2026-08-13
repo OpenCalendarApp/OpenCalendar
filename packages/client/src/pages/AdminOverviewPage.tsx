@@ -4,12 +4,15 @@ import type { AdminOverviewResponse, AdminOverviewStats } from '@opencalendar/sh
 
 import { apiFetch } from '../api/client.js';
 
-const overviewCards: Array<{ key: keyof AdminOverviewStats; label: string }> = [
+const peopleCards: Array<{ key: keyof AdminOverviewStats; label: string }> = [
   { key: 'total_users', label: 'Total Users' },
   { key: 'active_users', label: 'Active Users' },
   { key: 'admins', label: 'Admins' },
   { key: 'pms', label: 'PMs' },
-  { key: 'engineers', label: 'Engineers' },
+  { key: 'engineers', label: 'Engineers' }
+];
+
+const schedulingCards: Array<{ key: keyof AdminOverviewStats; label: string }> = [
   { key: 'projects', label: 'Projects' },
   { key: 'active_projects', label: 'Active Projects' },
   { key: 'time_blocks', label: 'Time Blocks' },
@@ -61,14 +64,31 @@ export function AdminOverviewPage(): JSX.Element {
       ) : null}
 
       {stats ? (
-        <ul className="project-grid">
-          {overviewCards.map((card) => (
-            <li key={card.key}>
-              <h3>{card.label}</h3>
-              <p className="mono-text">{stats[card.key]}</p>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p className="hint" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '11px' }}>
+            People
+          </p>
+          <ul className="metrics-hero">
+            {peopleCards.map((card) => (
+              <li key={card.key} className="metric-card">
+                <span className="metric-value">{stats[card.key]}</span>
+                <span className="metric-label">{card.label}</span>
+              </li>
+            ))}
+          </ul>
+
+          <p className="hint" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '11px' }}>
+            Scheduling
+          </p>
+          <ul className="metrics-hero">
+            {schedulingCards.map((card) => (
+              <li key={card.key} className="metric-card">
+                <span className="metric-value">{stats[card.key]}</span>
+                <span className="metric-label">{card.label}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : null}
     </section>
   );

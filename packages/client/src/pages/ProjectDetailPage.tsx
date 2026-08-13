@@ -484,149 +484,8 @@ export function ProjectDetailPage(): JSX.Element {
         </div>
       </div>
 
-      <div className="detail-card">
-        <h3>Booking Link</h3>
-        <p className="mono-text">{shareUrl}</p>
-        <p className="hint">
-          Allowed booking email domain:{' '}
-          {project.booking_email_domain_allowlist ?? 'Any domain'}
-        </p>
-        <button type="button" onClick={() => void handleCopyShareLink()}>
-          <ClipboardCopy size={16} /> Copy Link
-        </button>
-        {copyMessage ? <p className="hint">{copyMessage}</p> : null}
-      </div>
-
-      {isPm ? (
-        <form className="detail-card" onSubmit={(event) => void handleSave(event)}>
-          <h3>Project Settings</h3>
-
-          <label>
-            Name
-            <input
-              value={form.name}
-              onChange={(event) => setForm((prev) => (prev ? { ...prev, name: event.target.value } : prev))}
-              type="text"
-              maxLength={255}
-              required
-            />
-          </label>
-
-          <label>
-            Description
-            <textarea
-              value={form.description}
-              onChange={(event) =>
-                setForm((prev) => (prev ? { ...prev, description: event.target.value } : prev))
-              }
-              maxLength={5000}
-              rows={4}
-            />
-          </label>
-
-          <label>
-            Booking Email Domain Allowlist (optional)
-            <input
-              value={form.bookingEmailDomainAllowlist}
-              onChange={(event) =>
-                setForm((prev) => (prev ? { ...prev, bookingEmailDomainAllowlist: event.target.value } : prev))
-              }
-              type="text"
-              maxLength={255}
-              placeholder="client.com"
-            />
-          </label>
-
-          <label>
-            Session Length (minutes)
-            <input
-              value={form.sessionLengthMinutes}
-              onChange={(event) =>
-                setForm((prev) =>
-                  prev ? { ...prev, sessionLengthMinutes: Number(event.target.value) } : prev
-                )
-              }
-              type="number"
-              min={1}
-              required
-            />
-          </label>
-
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={form.isGroupSignup}
-              onChange={(event) =>
-                setForm((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        isGroupSignup: event.target.checked,
-                        maxGroupSize: event.target.checked ? prev.maxGroupSize : 1
-                      }
-                    : prev
-                )
-              }
-            />
-            Group Signup Enabled
-          </label>
-
-          <label>
-            Max Group Size
-            <input
-              value={form.maxGroupSize}
-              onChange={(event) =>
-                setForm((prev) => (prev ? { ...prev, maxGroupSize: Number(event.target.value) } : prev))
-              }
-              type="number"
-              min={1}
-              disabled={!form.isGroupSignup}
-              required
-            />
-          </label>
-
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(event) =>
-                setForm((prev) => (prev ? { ...prev, isActive: event.target.checked } : prev))
-              }
-            />
-            Project Active
-          </label>
-
-          <label>
-            Reset Client Password (optional)
-            <input
-              value={form.signupPassword}
-              onChange={(event) =>
-                setForm((prev) => (prev ? { ...prev, signupPassword: event.target.value } : prev))
-              }
-              type="password"
-              minLength={4}
-              placeholder="Leave blank to keep current password"
-            />
-          </label>
-
-          {error ? <p className="error">{error}</p> : null}
-
-          <div className="button-row">
-            <button type="submit" disabled={savePending}>
-              {savePending ? 'Saving...' : <><Save size={16} /> Save Changes</>}
-            </button>
-            <button
-              type="button"
-              className="danger-button"
-              onClick={handleDeleteRequest}
-              disabled={deletePending}
-            >
-              {deletePending ? 'Deleting...' : <><Trash2 size={16} /> Delete Project</>}
-            </button>
-          </div>
-        </form>
-      ) : null}
-
+      <div className="project-detail-columns">
+      <div className="project-detail-main">
       <div className="detail-card">
         <div className="header-row">
           <div>
@@ -785,6 +644,169 @@ export function ProjectDetailPage(): JSX.Element {
             </tbody>
           </table>
         )}
+      </div>
+      </div>
+
+      <div className="project-detail-side">
+      <div className="detail-card">
+        <h3>Booking Link</h3>
+        <p className="mono-text">{shareUrl}</p>
+        <p className="hint">
+          Allowed booking email domain:{' '}
+          {project.booking_email_domain_allowlist ?? 'Any domain'}
+        </p>
+        <button type="button" onClick={() => void handleCopyShareLink()}>
+          <ClipboardCopy size={16} /> Copy Link
+        </button>
+        {copyMessage ? <p className="hint">{copyMessage}</p> : null}
+      </div>
+
+      {isPm ? (
+        <form className="detail-card" onSubmit={(event) => void handleSave(event)}>
+          <h3>Project Settings</h3>
+
+          <label>
+            Name
+            <input
+              value={form.name}
+              onChange={(event) => setForm((prev) => (prev ? { ...prev, name: event.target.value } : prev))}
+              type="text"
+              maxLength={255}
+              required
+            />
+          </label>
+
+          <label>
+            Description
+            <textarea
+              value={form.description}
+              onChange={(event) =>
+                setForm((prev) => (prev ? { ...prev, description: event.target.value } : prev))
+              }
+              maxLength={5000}
+              rows={4}
+            />
+          </label>
+
+          <label>
+            Booking Email Domain Allowlist (optional)
+            <input
+              value={form.bookingEmailDomainAllowlist}
+              onChange={(event) =>
+                setForm((prev) => (prev ? { ...prev, bookingEmailDomainAllowlist: event.target.value } : prev))
+              }
+              type="text"
+              maxLength={255}
+              placeholder="client.com"
+            />
+          </label>
+
+          <label>
+            Session Length (minutes)
+            <input
+              value={form.sessionLengthMinutes}
+              onChange={(event) =>
+                setForm((prev) =>
+                  prev ? { ...prev, sessionLengthMinutes: Number(event.target.value) } : prev
+                )
+              }
+              type="number"
+              min={1}
+              required
+            />
+          </label>
+
+          <label>Signup Mode</label>
+          <div className="seg" style={{ marginBottom: '0.8rem' }}>
+            <label className={`seg-opt${!form.isGroupSignup ? ' checked' : ''}`}>
+              <input
+                type="radio"
+                name="signup-mode"
+                checked={!form.isGroupSignup}
+                onChange={() =>
+                  setForm((prev) => (prev ? { ...prev, isGroupSignup: false, maxGroupSize: 1 } : prev))
+                }
+              />
+              <span>Individual</span>
+            </label>
+            <label className={`seg-opt${form.isGroupSignup ? ' checked' : ''}`}>
+              <input
+                type="radio"
+                name="signup-mode"
+                checked={form.isGroupSignup}
+                onChange={() => setForm((prev) => (prev ? { ...prev, isGroupSignup: true } : prev))}
+              />
+              <span>Group</span>
+            </label>
+          </div>
+
+          <label>
+            Max Group Size
+            <input
+              value={form.maxGroupSize}
+              onChange={(event) =>
+                setForm((prev) => (prev ? { ...prev, maxGroupSize: Number(event.target.value) } : prev))
+              }
+              type="number"
+              min={1}
+              disabled={!form.isGroupSignup}
+              required
+            />
+          </label>
+
+          <label>Project State</label>
+          <div className="seg" style={{ marginBottom: '0.8rem' }}>
+            <label className={`seg-opt${form.isActive ? ' checked' : ''}`}>
+              <input
+                type="radio"
+                name="project-state"
+                checked={form.isActive}
+                onChange={() => setForm((prev) => (prev ? { ...prev, isActive: true } : prev))}
+              />
+              <span>Active</span>
+            </label>
+            <label className={`seg-opt${!form.isActive ? ' checked' : ''}`}>
+              <input
+                type="radio"
+                name="project-state"
+                checked={!form.isActive}
+                onChange={() => setForm((prev) => (prev ? { ...prev, isActive: false } : prev))}
+              />
+              <span>Paused</span>
+            </label>
+          </div>
+
+          <label>
+            Reset Client Password (optional)
+            <input
+              value={form.signupPassword}
+              onChange={(event) =>
+                setForm((prev) => (prev ? { ...prev, signupPassword: event.target.value } : prev))
+              }
+              type="password"
+              minLength={4}
+              placeholder="Leave blank to keep current password"
+            />
+          </label>
+
+          {error ? <p className="error">{error}</p> : null}
+
+          <div className="button-row">
+            <button type="submit" disabled={savePending}>
+              {savePending ? 'Saving...' : <><Save size={16} /> Save Changes</>}
+            </button>
+            <button
+              type="button"
+              className="danger-button"
+              onClick={handleDeleteRequest}
+              disabled={deletePending}
+            >
+              {deletePending ? 'Deleting...' : <><Trash2 size={16} /> Delete Project</>}
+            </button>
+          </div>
+        </form>
+      ) : null}
+      </div>
       </div>
 
       {isAddTimeBlockModalOpen && user ? (

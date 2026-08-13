@@ -212,27 +212,47 @@ export function ReschedulePage(): JSX.Element {
           <p className="hint public-brand-copy">Review and update your booking below.</p>
         </div>
         <h2>Reschedule: {lookup.project.name}</h2>
-        <p>
-          Current booking for {lookup.booking.client_first_name} {lookup.booking.client_last_name}
-        </p>
-        <p className="hint">Current slot: {formatSlotLabel(lookup.current_slot, timeZone)}</p>
-        <TimeZoneSelect label="Display Timezone" />
-        <button type="button" className="secondary-button" onClick={() => downloadCalendar(lookup.booking.booking_token)}>
-          <Download size={16} /> Download Current Calendar (.ics)
-        </button>
       </div>
 
-      {successMessage ? (
-        <div className="detail-card">
-          <p>{successMessage}</p>
-          <button
-            type="button"
-            onClick={() => downloadCalendar(successBookingToken ?? lookup.booking.booking_token)}
-          >
-            <Download size={16} /> Download Updated Calendar (.ics)
-          </button>
+      <div className="reschedule-columns">
+        <div>
+          <div className="detail-card">
+            <h4>Current Booking</h4>
+            <p>
+              {lookup.booking.client_first_name} {lookup.booking.client_last_name}
+            </p>
+            <p className="hint">Current slot: {formatSlotLabel(lookup.current_slot, timeZone)}</p>
+            <TimeZoneSelect label="Display Timezone" />
+            <button type="button" className="secondary-button" onClick={() => downloadCalendar(lookup.booking.booking_token)}>
+              <Download size={16} /> Download Current Calendar (.ics)
+            </button>
+          </div>
+
+          {successMessage ? (
+            <div className="detail-card">
+              <p>{successMessage}</p>
+              <button
+                type="button"
+                onClick={() => downloadCalendar(successBookingToken ?? lookup.booking.booking_token)}
+              >
+                <Download size={16} /> Download Updated Calendar (.ics)
+              </button>
+            </div>
+          ) : null}
+
+          <div className="detail-card">
+            <h4>Cannot Make It?</h4>
+            <p className="hint">Cancelling frees the slot for another client immediately.</p>
+            <button
+              type="button"
+              className="danger-button"
+              onClick={() => setIsCancelConfirmOpen(true)}
+              disabled={isCancelling}
+            >
+              {isCancelling ? 'Cancelling...' : <><XCircle size={16} /> Cancel Booking</>}
+            </button>
+          </div>
         </div>
-      ) : null}
 
       <div className="detail-card">
         <h3>Select a New Slot</h3>
@@ -285,15 +305,8 @@ export function ReschedulePage(): JSX.Element {
           >
             {isSubmitting ? 'Rescheduling...' : <><CalendarCheck size={16} /> Confirm Reschedule</>}
           </button>
-          <button
-            type="button"
-            className="danger-button"
-            onClick={() => setIsCancelConfirmOpen(true)}
-            disabled={isCancelling}
-          >
-            {isCancelling ? 'Cancelling...' : <><XCircle size={16} /> Cancel Booking</>}
-          </button>
         </div>
+      </div>
       </div>
 
       {isCancelConfirmOpen ? (

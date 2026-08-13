@@ -6,7 +6,8 @@ import { apiFetch, buildApiUrl } from '../api/client.js';
 import { getStoredToken } from '../auth/storage.js';
 import { useToast } from '../context/ToastContext.js';
 
-const DEFAULT_ACCENT = '#194677';
+const DEFAULT_ACCENT = '#ec3013';
+const ACCENT_SWATCHES = ['#ec3013', '#201e1d', '#194677'];
 
 export function AdminBrandingPage(): JSX.Element {
   const { showToast } = useToast();
@@ -200,12 +201,18 @@ export function AdminBrandingPage(): JSX.Element {
         </p>
 
         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: 'var(--space-2)' }}>
-          <input
-            type="color"
-            value={previewAccent}
-            onChange={(event) => setAccentInput(event.target.value)}
-            style={{ width: '48px', height: '36px', padding: '2px', cursor: 'pointer' }}
-          />
+          <div className="accent-swatches">
+            {ACCENT_SWATCHES.map((swatch) => (
+              <button
+                key={swatch}
+                type="button"
+                className={`accent-swatch${previewAccent.toLowerCase() === swatch ? ' selected' : ''}`}
+                style={{ background: swatch }}
+                aria-label={swatch}
+                onClick={() => setAccentInput(swatch)}
+              />
+            ))}
+          </div>
           <input
             type="text"
             value={accentInput}
