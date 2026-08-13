@@ -12,6 +12,36 @@ Multi-tenant session scheduling platform with a React/Vite frontend, Express API
 - Data retention sweeps for redaction and cleanup policies
 - Built-in load testing scripts for capacity planning
 
+## Screenshots
+
+### Project manager workflow
+
+| Login | Dashboard | Project detail |
+| --- | --- | --- |
+| ![Login](docs/assets/01-login.png) | ![Dashboard](docs/assets/02-dashboard.png) | ![Project detail](docs/assets/03-project-detail.png) |
+
+| Add time blocks | Find a time for everyone |
+| --- | --- |
+| ![Add time blocks](docs/assets/04-add-time-blocks.png) | ![Availability solver](docs/assets/05-availability-solver.png) |
+
+### Client booking flow
+
+| Select a time | Booking confirmed | Reschedule |
+| --- | --- | --- |
+| ![Select a time](docs/assets/06-booking-select-time.png) | ![Booking confirmed](docs/assets/07-booking-confirmed.png) | ![Reschedule](docs/assets/08-reschedule.png) |
+
+### Tenant admin
+
+| Admin overview | Users |
+| --- | --- |
+| ![Admin overview](docs/assets/09-admin-overview.png) | ![Users](docs/assets/10-admin-users.png) |
+
+### Mobile
+
+| Dashboard | Booking |
+| --- | --- |
+| <img src="docs/assets/11-mobile-dashboard.png" width="280" alt="Mobile dashboard" /> | <img src="docs/assets/12-mobile-booking.png" width="280" alt="Mobile booking" /> |
+
 ## Tech Stack
 
 - Frontend: React 18 + Vite + TypeScript
