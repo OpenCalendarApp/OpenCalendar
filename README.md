@@ -12,6 +12,14 @@ Multi-tenant session scheduling platform with a React/Vite frontend, Express API
 - Data retention sweeps for redaction and cleanup policies
 - Built-in load testing scripts for capacity planning
 
+## Application Layout
+
+General visual layout assets:
+
+![OpenCalendar horizontal layout](docs/assets/horizontal.svg)
+![OpenCalendar stacked layout](docs/assets/stacked.svg)
+![OpenCalendar icon layout](docs/assets/icon.svg)
+
 ## Tech Stack
 
 - Frontend: React 18 + Vite + TypeScript
