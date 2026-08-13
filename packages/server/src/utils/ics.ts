@@ -55,10 +55,10 @@ export function createCalendarEvent(input: CalendarInput): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Calendar Genie//EN',
+    'PRODID:-//OpenCalendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:Calendar Genie',
+    'X-WR-CALNAME:OpenCalendar',
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTAMP:${now}`,

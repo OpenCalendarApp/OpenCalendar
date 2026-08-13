@@ -6,7 +6,7 @@ const allowedScenarios = new Set(['read-project', 'book-contention']);
 
 function printUsage() {
   console.log(`
-Calendar Genie Load Test Runner
+OpenCalendar Load Test Runner
 
 Usage:
   node scripts/load-test.mjs <scenario>

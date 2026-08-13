@@ -11,7 +11,7 @@ export function Layout(): JSX.Element {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <Link to="/dashboard" className="brand-link" aria-label="Calendar Genie dashboard">
+          <Link to="/dashboard" className="brand-link" aria-label="OpenCalendar dashboard">
             <BrandLogo className="brand-logo sidebar-logo" />
           </Link>
           <p className="brand-subtitle">Team scheduling built for how consultants work.</p>

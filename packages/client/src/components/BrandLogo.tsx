@@ -11,7 +11,7 @@ const brandAssetMap: Record<NonNullable<BrandLogoProps['variant']>, string> = {
 };
 
 export function BrandLogo({
-  alt = 'Calendar Genie',
+  alt = 'OpenCalendar',
   className,
   variant = 'horizontal'
 }: BrandLogoProps): JSX.Element {

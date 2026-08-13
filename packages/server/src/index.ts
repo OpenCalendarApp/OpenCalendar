@@ -25,7 +25,7 @@ async function handleStartupError(error: NodeJS.ErrnoException): Promise<never> 
 
   if (error.code === 'EADDRINUSE') {
     console.error(
-      `Port ${port} is already in use. Stop the existing process or restart Calendar Genie with PORT set to a different value.`
+      `Port ${port} is already in use. Stop the existing process or restart OpenCalendar with PORT set to a different value.`
     );
   } else {
     console.error('Server failed to start.', error);

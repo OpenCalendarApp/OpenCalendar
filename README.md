@@ -208,4 +208,4 @@ Auto bump rules:
 
 ## Status
 
-Calendar Genie is under active development. The repository currently includes a full local development workflow, Docker-backed infrastructure, and production-oriented scheduling capabilities listed above.
+OpenCalendar is under active development. The repository currently includes a full local development workflow, Docker-backed infrastructure, and production-oriented scheduling capabilities listed above.

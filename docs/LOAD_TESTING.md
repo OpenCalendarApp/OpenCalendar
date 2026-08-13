@@ -1,6 +1,6 @@
 # Load Testing + Capacity Planning (EPIC 11)
 
-This document defines the baseline process for load validation and capacity planning for Calendar Genie.
+This document defines the baseline process for load validation and capacity planning for OpenCalendar.
 
 ## Goals
 

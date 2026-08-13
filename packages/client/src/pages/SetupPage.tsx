@@ -118,7 +118,7 @@ export function SetupPage(): JSX.Element {
     <div className="center-card">
       <div className="auth-brand">
         <BrandLogo variant="stacked" className="brand-logo auth-brand-logo" />
-        <p className="hint">Set up your first Calendar Genie tenant and admin workspace.</p>
+        <p className="hint">Set up your first OpenCalendar tenant and admin workspace.</p>
       </div>
       <h2>Initial Setup</h2>
       <p className="hint">

@@ -1,4 +1,4 @@
-# Calendar Genie — Architecture Document
+# OpenCalendar — Architecture Document
 
 > **Version:** 1.0  
 > **Last Updated:** March 2026  
@@ -25,7 +25,7 @@
 
 ### Purpose
 
-Calendar Genie is an internal scheduling platform that allows Project Managers to create time-blocked sessions for projects, assign engineers to those blocks, and generate password-protected booking links for external clients. Clients visit the link, authenticate with a project-specific password, select an available time slot, and receive a downloadable `.ics` calendar reminder. Clients can also reschedule or cancel, which automatically frees the original slot.
+OpenCalendar is an internal scheduling platform that allows Project Managers to create time-blocked sessions for projects, assign engineers to those blocks, and generate password-protected booking links for external clients. Clients visit the link, authenticate with a project-specific password, select an available time slot, and receive a downloadable `.ics` calendar reminder. Clients can also reschedule or cancel, which automatically frees the original slot.
 
 ### Core Requirements
 

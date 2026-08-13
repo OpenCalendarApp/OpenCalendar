@@ -160,7 +160,7 @@ export function AdminBrandingPage(): JSX.Element {
           </div>
         ) : (
           <p className="hint" style={{ fontStyle: 'italic', margin: 'var(--space-3) 0' }}>
-            No logo uploaded. The default Calendar Genie logo will be shown.
+            No logo uploaded. The default OpenCalendar logo will be shown.
           </p>
         )}
 

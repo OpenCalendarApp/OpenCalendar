@@ -1,16 +1,9 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <radialGradient id="grad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#4FD1C5"/>
-      <stop offset="60%" stop-color="#3A6BFF"/>
-      <stop offset="100%" stop-color="#1E2A78"/>
-    </radialGradient>
-  </defs>
-  <circle cx="256" cy="256" r="200" fill="url(#grad)"/>
-  <g stroke="#E5E7EB" stroke-width="12" fill="none">
-    <path d="M256 100 A156 156 0 0 1 412 256"/>
-    <path d="M412 256 A156 156 0 0 1 256 412"/>
-    <path d="M256 412 A156 156 0 0 1 100 256"/>
-    <path d="M100 256 A156 156 0 0 1 256 100"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="OpenCalendar" color="#2E2E2C">
+  <g transform="translate(0,0)" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="8" y="14" width="48" height="42" rx="9"></rect>
+    <path d="M22 6.5V16M42 6.5V16"></path>
+    <path d="M9 26.5H55"></path>
+    <path d="M23 52V36.5A4.5 4.5 0 0 1 27.5 32h6A4.5 4.5 0 0 1 38 36.5V52"></path>
+    <path d="M38 37.5 46.5 34v20.5L38 51"></path>
   </g>
 </svg>

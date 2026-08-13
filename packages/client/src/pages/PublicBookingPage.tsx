@@ -346,7 +346,7 @@ export function PublicBookingPage(): JSX.Element {
           ) : (
             <BrandLogo className="brand-logo public-brand-logo" />
           )}
-          <p className="hint public-brand-copy">Simple, professional scheduling — powered by Calendar Genie.</p>
+          <p className="hint public-brand-copy">Simple, professional scheduling — powered by OpenCalendar.</p>
         </div>
         <h2>{projectResponse.project.name}</h2>
         <p>{projectResponse.project.description || 'No project description provided.'}</p>
