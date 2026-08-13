@@ -18,7 +18,7 @@ General visual layout assets:
 
 ![OpenCalendar horizontal layout](docs/assets/horizontal.svg)
 ![OpenCalendar stacked layout](docs/assets/stacked.svg)
-![OpenCalendar icon layout](docs/assets/icon.svg)
+![OpenCalendar icon](docs/assets/icon.svg)
 
 ## Tech Stack
 
