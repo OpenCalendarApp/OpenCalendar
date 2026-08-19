@@ -17,9 +17,13 @@
     .\infra\azure\deploy.ps1
 
 .NOTES
-    Re-running is mostly safe (az ... create is idempotent for most resources)
-    but Postgres server creation and Front Door domain validation are not
-    instant - read the output at each step before moving on.
+    Safe to re-run after a partial failure: every resource-creation step first
+    checks whether the resource already exists and skips straight to reading
+    its outputs if so. The ACR image build and the DB migration always run
+    (cheap, and idempotent on their own), since a re-run after fixing a build
+    or migration bug should pick up the new code. Postgres server creation and
+    Front Door domain validation are not instant - read the output at each
+    step before moving on.
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -29,10 +33,79 @@ Push-Location $RootDir
 try {
 
 function Invoke-Checked {
+    # Checks $LASTEXITCODE itself, so native-command stderr chatter (npm warn,
+    # az CLI preview-extension notices, etc.) must not be allowed to get
+    # promoted into a script-terminating exception ahead of that check.
     param([Parameter(Mandatory)][ScriptBlock]$Script)
-    & $Script
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $Script
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "Command failed with exit code ${LASTEXITCODE}: $Script"
+    }
+}
+
+function Remove-OptionalSecret {
+    # Container Apps rejects a secret whose value is blank ("value or
+    # keyVaultUrl and identity should be provided"), so an unconfigured
+    # optional integration (Resend, Microsoft OAuth, ...) must drop its
+    # secret entry and its referencing env var's secretRef entirely rather
+    # than substitute an empty value into the manifest.
+    param(
+        [Parameter(Mandatory)][string]$Text,
+        [Parameter(Mandatory)][string]$SecretName,
+        [Parameter(Mandatory)][string]$EnvVarName,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Value
+    )
+    if (-not [string]::IsNullOrEmpty($Value)) { return $Text }
+    $Text = $Text -replace "(?m)^ *- name: $SecretName\r?\n *value: .*\r?\n", ""
+    $Text = $Text -replace "(?m)(^ *- name: $EnvVarName\r?\n) *secretRef: $SecretName\r?\n", "`${1}            value: `"`"`r`n"
+    return $Text
+}
+
+function Invoke-Quiet {
+    # Runs a command with $ErrorActionPreference relaxed so that benign stderr
+    # chatter (e.g. az CLI "no stable version, using preview" notices) doesn't
+    # get promoted into a script-terminating exception. Use for best-effort
+    # setup calls where the exit code isn't checked.
+    param([Parameter(Mandatory)][ScriptBlock]$Script)
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $Script
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
+}
+
+function Test-AzResource {
+    param([Parameter(Mandatory)][ScriptBlock]$Show)
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    try {
+        & $Show 2>$null 1>$null
+    } catch {
+        # Resource doesn't exist (or lookup failed) - treated the same: fall through to create.
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
+    return $LASTEXITCODE -eq 0
+}
+
+function New-IfMissing {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][ScriptBlock]$Show,
+        [Parameter(Mandatory)][ScriptBlock]$Create
+    )
+    if (Test-AzResource $Show) {
+        Write-Host "  $Name already exists, skipping create" -ForegroundColor DarkGray
+    } else {
+        Invoke-Checked $Create
     }
 }
 
@@ -54,8 +127,14 @@ function Get-OptionalEnvVar {
 
 function New-RandomHex {
     param([int]$Bytes = 32)
-    $buffer = [System.Security.Cryptography.RandomNumberGenerator]::GetBytes($Bytes)
-    return [System.Convert]::ToHexString($buffer).ToLowerInvariant()
+    $buffer = New-Object byte[] $Bytes
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $rng.GetBytes($buffer)
+    } finally {
+        $rng.Dispose()
+    }
+    return -join ($buffer | ForEach-Object { $_.ToString("x2") })
 }
 
 $ResourceGroup      = Get-RequiredEnvVar "RESOURCE_GROUP"
@@ -78,30 +157,46 @@ $MicrosoftClientId  = Get-OptionalEnvVar "MICROSOFT_CLIENT_ID" ""
 $MicrosoftClientSecret = Get-OptionalEnvVar "MICROSOFT_CLIENT_SECRET" ""
 
 Write-Host "== 1. Resource group ==" -ForegroundColor Cyan
-Invoke-Checked { az group create -n $ResourceGroup -l $Location -o table }
+New-IfMissing -Name "Resource group $ResourceGroup" `
+    -Show { az group show -n $ResourceGroup -o none } `
+    -Create { az group create -n $ResourceGroup -l $Location -o table }
 
 Write-Host "== 2. Container registry ==" -ForegroundColor Cyan
-Invoke-Checked { az acr create -g $ResourceGroup -n $AcrName --sku Basic -o table }
+New-IfMissing -Name "ACR $AcrName" `
+    -Show { az acr show -g $ResourceGroup -n $AcrName -o none } `
+    -Create { az acr create -g $ResourceGroup -n $AcrName --sku Basic -o table }
 $AcrLoginServer = az acr show -n $AcrName --query loginServer -o tsv
 if ($LASTEXITCODE -ne 0) { throw "Failed to read ACR login server" }
+
+# Container apps authenticate to the registry with the admin user/password
+# rather than a system-assigned managed identity: identity-based pull needs
+# an AcrPull role assignment, which requires Owner/User Access Administrator
+# on the subscription - this account only has Contributor.
+Invoke-Checked { az acr update -n $AcrName --admin-enabled true -o none }
+$AcrUsername = az acr credential show -n $AcrName --query username -o tsv
+$AcrPassword = az acr credential show -n $AcrName --query "passwords[0].value" -o tsv
 
 Write-Host "== 3. Build + push images via ACR build (no local docker needed) ==" -ForegroundColor Cyan
 Invoke-Checked { az acr build -r $AcrName -t "opencalendar/server:latest" -f "packages/server/Dockerfile" . }
 Invoke-Checked { az acr build -r $AcrName -t "opencalendar/client:latest" -f "packages/client/Dockerfile" . }
 
 Write-Host "== 4. Log Analytics + Container Apps environment ==" -ForegroundColor Cyan
-Invoke-Checked { az monitor log-analytics workspace create -g $ResourceGroup -n $LogAnalyticsName -o table }
+New-IfMissing -Name "Log Analytics workspace $LogAnalyticsName" `
+    -Show { az monitor log-analytics workspace show -g $ResourceGroup -n $LogAnalyticsName -o none } `
+    -Create { az monitor log-analytics workspace create -g $ResourceGroup -n $LogAnalyticsName -o table }
 $LogId  = az monitor log-analytics workspace show -g $ResourceGroup -n $LogAnalyticsName --query customerId -o tsv
 $LogKey = az monitor log-analytics workspace get-shared-keys -g $ResourceGroup -n $LogAnalyticsName --query primarySharedKey -o tsv
 
-az extension add --name containerapp --upgrade -o none 2>$null
-az provider register --namespace Microsoft.App -o none
-az provider register --namespace Microsoft.OperationalInsights -o none
+Invoke-Quiet { az extension add --name containerapp --upgrade -o none }
+Invoke-Quiet { az provider register --namespace Microsoft.App -o none }
+Invoke-Quiet { az provider register --namespace Microsoft.OperationalInsights -o none }
 
-Invoke-Checked {
-    az containerapp env create -g $ResourceGroup -n $EnvName -l $Location `
-        --logs-workspace-id $LogId --logs-workspace-key $LogKey -o table
-}
+New-IfMissing -Name "Container Apps environment $EnvName" `
+    -Show { az containerapp env show -g $ResourceGroup -n $EnvName -o none } `
+    -Create {
+        az containerapp env create -g $ResourceGroup -n $EnvName -l $Location `
+            --logs-workspace-id $LogId --logs-workspace-key $LogKey -o table
+    }
 $ManagedEnvironmentId = az containerapp env show -g $ResourceGroup -n $EnvName --query id -o tsv
 
 Write-Host "== 5. PostgreSQL Flexible Server ==" -ForegroundColor Cyan
@@ -109,17 +204,24 @@ Write-Host "== 5. PostgreSQL Flexible Server ==" -ForegroundColor Cyan
 # with VNET-injected Container Apps env + private endpoint once this baseline
 # needs to move past a single-region single-replica setup (see
 # docs/AZURE_DEPLOYMENT_PLAN.md decision matrix).
-Invoke-Checked {
-    az postgres flexible-server create `
-        -g $ResourceGroup -n $PgServerName -l $Location `
-        --admin-user $PgAdminUser --admin-password $PgAdminPassword `
-        --sku-name Standard_B1ms --tier Burstable --storage-size 32 `
-        --version 16 --public-access "0.0.0.0-0.0.0.0" -o table
-}
-Invoke-Checked { az postgres flexible-server db create -g $ResourceGroup -s $PgServerName -d $PgDbName -o table }
+New-IfMissing -Name "Postgres server $PgServerName" `
+    -Show { az postgres flexible-server show -g $ResourceGroup -n $PgServerName -o none } `
+    -Create {
+        # -o none, not -o table: this command's nested response (server +
+        # default db + firewall rule) makes the table formatter itself fail
+        # and exit 1 even when the server was created successfully.
+        az postgres flexible-server create `
+            -g $ResourceGroup -n $PgServerName -l $Location `
+            --admin-user $PgAdminUser --admin-password $PgAdminPassword `
+            --sku-name Standard_B1ms --tier Burstable --storage-size 32 `
+            --version 16 --public-access "0.0.0.0-0.0.0.0" -o none
+    }
+New-IfMissing -Name "Postgres database $PgDbName" `
+    -Show { az postgres flexible-server db show -g $ResourceGroup -s $PgServerName -d $PgDbName -o none } `
+    -Create { az postgres flexible-server db create -g $ResourceGroup -s $PgServerName -d $PgDbName -o none }
 Invoke-Checked {
     az postgres flexible-server parameter set `
-        -g $ResourceGroup -s $PgServerName --name require_secure_transport --value on -o table
+        -g $ResourceGroup -s $PgServerName --name require_secure_transport --value on -o none
 }
 
 $PgHost = "$PgServerName.postgres.database.azure.com"
@@ -148,9 +250,12 @@ Invoke-Checked {
 
 Write-Host "== 7. Deploy server container app (internal ingress) ==" -ForegroundColor Cyan
 $ServerManifestPath = Join-Path ([System.IO.Path]::GetTempPath()) "opencalendar-server.containerapp.yaml"
-(Get-Content "infra/azure/container-apps/server.containerapp.yaml" -Raw).
+$ServerManifest = (Get-Content "infra/azure/container-apps/server.containerapp.yaml" -Raw).
+    Replace("__LOCATION__", $Location).
     Replace("__MANAGED_ENVIRONMENT_ID__", $ManagedEnvironmentId).
     Replace("__ACR_LOGIN_SERVER__", $AcrLoginServer).
+    Replace("__ACR_USERNAME__", $AcrUsername).
+    Replace("__ACR_PASSWORD__", $AcrPassword).
     Replace("__SERVER_IMAGE__", "$AcrLoginServer/opencalendar/server:latest").
     Replace("__DATABASE_URL__", $DatabaseUrl).
     Replace("__JWT_SECRET__", $JwtSecret).
@@ -158,56 +263,75 @@ $ServerManifestPath = Join-Path ([System.IO.Path]::GetTempPath()) "opencalendar-
     Replace("__RESEND_API_KEY__", $ResendApiKey).
     Replace("__MICROSOFT_CLIENT_ID__", $MicrosoftClientId).
     Replace("__MICROSOFT_CLIENT_SECRET__", $MicrosoftClientSecret).
-    Replace("calendar.example.com", $AppDomain) |
-    Set-Content -Path $ServerManifestPath -NoNewline
+    Replace("calendar.example.com", $AppDomain)
+$ServerManifest = Remove-OptionalSecret -Text $ServerManifest -SecretName "resend-api-key" -EnvVarName "RESEND_API_KEY" -Value $ResendApiKey
+$ServerManifest = Remove-OptionalSecret -Text $ServerManifest -SecretName "microsoft-client-id" -EnvVarName "MICROSOFT_CLIENT_ID" -Value $MicrosoftClientId
+$ServerManifest = Remove-OptionalSecret -Text $ServerManifest -SecretName "microsoft-client-secret" -EnvVarName "MICROSOFT_CLIENT_SECRET" -Value $MicrosoftClientSecret
+Set-Content -Path $ServerManifestPath -Value $ServerManifest -NoNewline
 
-Invoke-Checked { az containerapp create -g $ResourceGroup --yaml $ServerManifestPath -o table }
-Invoke-Checked {
-    az containerapp registry set -g $ResourceGroup -n opencalendar-server `
-        --server $AcrLoginServer --identity system
-}
+New-IfMissing -Name "Container app opencalendar-server" `
+    -Show { az containerapp show -g $ResourceGroup -n opencalendar-server -o none } `
+    -Create { az containerapp create -g $ResourceGroup -n opencalendar-server --yaml $ServerManifestPath -o table }
+# Reconciles an existing app to the manifest too (not just fresh creates):
+# heals anything left over from earlier failed attempts (e.g. the old
+# managed-identity registry config) since this always supplies the full
+# desired state, unlike a partial/flag-based update.
+Invoke-Checked { az containerapp update -g $ResourceGroup -n opencalendar-server --yaml $ServerManifestPath -o table }
 $ServerInternalOrigin = "https://" + (az containerapp show -g $ResourceGroup -n opencalendar-server --query properties.configuration.ingress.fqdn -o tsv)
 
 Write-Host "== 8. Deploy client container app (external ingress) ==" -ForegroundColor Cyan
 $ClientManifestPath = Join-Path ([System.IO.Path]::GetTempPath()) "opencalendar-client.containerapp.yaml"
 (Get-Content "infra/azure/container-apps/client.containerapp.yaml" -Raw).
+    Replace("__LOCATION__", $Location).
     Replace("__MANAGED_ENVIRONMENT_ID__", $ManagedEnvironmentId).
     Replace("__ACR_LOGIN_SERVER__", $AcrLoginServer).
+    Replace("__ACR_USERNAME__", $AcrUsername).
+    Replace("__ACR_PASSWORD__", $AcrPassword).
     Replace("__CLIENT_IMAGE__", "$AcrLoginServer/opencalendar/client:latest").
     Replace("__SERVER_INTERNAL_ORIGIN__", $ServerInternalOrigin) |
     Set-Content -Path $ClientManifestPath -NoNewline
 
-Invoke-Checked { az containerapp create -g $ResourceGroup --yaml $ClientManifestPath -o table }
-Invoke-Checked {
-    az containerapp registry set -g $ResourceGroup -n opencalendar-client `
-        --server $AcrLoginServer --identity system
-}
+New-IfMissing -Name "Container app opencalendar-client" `
+    -Show { az containerapp show -g $ResourceGroup -n opencalendar-client -o none } `
+    -Create { az containerapp create -g $ResourceGroup -n opencalendar-client --yaml $ClientManifestPath -o table }
+Invoke-Checked { az containerapp update -g $ResourceGroup -n opencalendar-client --yaml $ClientManifestPath -o table }
 $ClientFqdn = az containerapp show -g $ResourceGroup -n opencalendar-client --query properties.configuration.ingress.fqdn -o tsv
 
 Write-Host "== 9. Front Door Premium in front of the client app ==" -ForegroundColor Cyan
-Invoke-Checked { az afd profile create -g $ResourceGroup -n $AfdProfileName --sku Premium_AzureFrontDoor -o table }
-Invoke-Checked { az afd endpoint create -g $ResourceGroup --profile-name $AfdProfileName -n $AfdEndpointName -o table }
+New-IfMissing -Name "Front Door profile $AfdProfileName" `
+    -Show { az afd profile show -g $ResourceGroup -n $AfdProfileName -o none } `
+    -Create { az afd profile create -g $ResourceGroup -n $AfdProfileName --sku Premium_AzureFrontDoor -o table }
 
-Invoke-Checked {
-    az afd origin-group create -g $ResourceGroup --profile-name $AfdProfileName `
-        -n opencalendar-origin-group `
-        --probe-request-type GET --probe-protocol Https --probe-path "/" --probe-interval-in-seconds 30 `
-        --sample-size 4 --successful-samples-required 3 -o table
-}
+New-IfMissing -Name "Front Door endpoint $AfdEndpointName" `
+    -Show { az afd endpoint show -g $ResourceGroup --profile-name $AfdProfileName -n $AfdEndpointName -o none } `
+    -Create { az afd endpoint create -g $ResourceGroup --profile-name $AfdProfileName -n $AfdEndpointName -o table }
 
-Invoke-Checked {
-    az afd origin create -g $ResourceGroup --profile-name $AfdProfileName `
-        --origin-group-name opencalendar-origin-group -n opencalendar-client-origin `
-        --host-name $ClientFqdn --origin-host-header $ClientFqdn `
-        --http-port 80 --https-port 443 --priority 1 --weight 1000 --enabled-state Enabled -o table
-}
+New-IfMissing -Name "Front Door origin group opencalendar-origin-group" `
+    -Show { az afd origin-group show -g $ResourceGroup --profile-name $AfdProfileName -n opencalendar-origin-group -o none } `
+    -Create {
+        az afd origin-group create -g $ResourceGroup --profile-name $AfdProfileName `
+            -n opencalendar-origin-group `
+            --probe-request-type GET --probe-protocol Https --probe-path "/" --probe-interval-in-seconds 30 `
+            --sample-size 4 --successful-samples-required 3 -o table
+    }
 
-Invoke-Checked {
-    az afd route create -g $ResourceGroup --profile-name $AfdProfileName `
-        --endpoint-name $AfdEndpointName -n opencalendar-route `
-        --origin-group opencalendar-origin-group --supported-protocols Https Http `
-        --https-redirect Enabled --forwarding-protocol HttpsOnly --link-to-default-domain Enabled -o table
-}
+New-IfMissing -Name "Front Door origin opencalendar-client-origin" `
+    -Show { az afd origin show -g $ResourceGroup --profile-name $AfdProfileName --origin-group-name opencalendar-origin-group -n opencalendar-client-origin -o none } `
+    -Create {
+        az afd origin create -g $ResourceGroup --profile-name $AfdProfileName `
+            --origin-group-name opencalendar-origin-group -n opencalendar-client-origin `
+            --host-name $ClientFqdn --origin-host-header $ClientFqdn `
+            --http-port 80 --https-port 443 --priority 1 --weight 1000 --enabled-state Enabled -o table
+    }
+
+New-IfMissing -Name "Front Door route opencalendar-route" `
+    -Show { az afd route show -g $ResourceGroup --profile-name $AfdProfileName --endpoint-name $AfdEndpointName -n opencalendar-route -o none } `
+    -Create {
+        az afd route create -g $ResourceGroup --profile-name $AfdProfileName `
+            --endpoint-name $AfdEndpointName -n opencalendar-route `
+            --origin-group opencalendar-origin-group --supported-protocols Https Http `
+            --https-redirect Enabled --forwarding-protocol HttpsOnly --link-to-default-domain Enabled -o table
+    }
 
 Write-Host ""
 Write-Host "Default Front Door hostname (works immediately, use for a smoke test):" -ForegroundColor Green

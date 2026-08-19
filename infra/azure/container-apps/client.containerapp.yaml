@@ -1,4 +1,4 @@
-location: eastus
+location: __LOCATION__
 name: opencalendar-client
 type: Microsoft.App/containerApps
 
@@ -16,7 +16,11 @@ properties:
           weight: 100
     registries:
       - server: __ACR_LOGIN_SERVER__
-        identity: system
+        username: __ACR_USERNAME__
+        passwordSecretRef: acr-password
+    secrets:
+      - name: acr-password
+        value: __ACR_PASSWORD__
   template:
     revisionSuffix: baseline
     containers:

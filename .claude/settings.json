@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat)",
+      "Bash(powershell.exe -NoProfile -File /tmp/test_remove.ps1)",
+      "Bash(echo \"server exists exit: $?\")",
+      "Bash(echo \"client exists exit: $?\")",
+      "Bash(az role *)",
+      "Bash(powershell.exe -NoProfile -File /tmp/test_remove2.ps1)",
+      "Bash(rm -f /tmp/test_remove2.ps1)"
+    ]
+  }
+}

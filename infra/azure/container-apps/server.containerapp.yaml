@@ -1,4 +1,4 @@
-location: eastus
+location: __LOCATION__
 name: opencalendar-server
 type: Microsoft.App/containerApps
 
@@ -13,8 +13,11 @@ properties:
       transport: auto
     registries:
       - server: __ACR_LOGIN_SERVER__
-        identity: system
+        username: __ACR_USERNAME__
+        passwordSecretRef: acr-password
     secrets:
+      - name: acr-password
+        value: __ACR_PASSWORD__
       - name: database-url
         value: __DATABASE_URL__
       - name: jwt-secret
