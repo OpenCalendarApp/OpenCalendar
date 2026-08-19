@@ -1,0 +1,4 @@
+# Shell scripts run inside Linux containers/CI; a CRLF shebang ("#!/bin/sh\r")
+# isn't a valid interpreter path and fails with "not found" at runtime. Force
+# LF regardless of core.autocrlf on the checking-out machine.
+*.sh text eol=lf
