@@ -7,7 +7,8 @@
       "Bash(echo \"client exists exit: $?\")",
       "Bash(az role *)",
       "Bash(powershell.exe -NoProfile -File /tmp/test_remove2.ps1)",
-      "Bash(rm -f /tmp/test_remove2.ps1)"
+      "Bash(rm -f /tmp/test_remove2.ps1)",
+      "Bash(az afd *)"
     ]
   }
 }
