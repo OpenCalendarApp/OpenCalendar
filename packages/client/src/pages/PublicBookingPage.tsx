@@ -98,6 +98,12 @@ function formatSlotLabel(slot: PublicSlotInfo, timeZone: string): string {
   return `${formatDateTimeInTimeZone(slot.start_time, timeZone)} - ${formatTimeInTimeZone(slot.end_time, timeZone)}`;
 }
 
+function formatEngineerNames(engineers: Array<{ first_name: string; last_name: string }>): string {
+  return engineers.length > 0
+    ? engineers.map((engineer) => `${engineer.first_name} ${engineer.last_name}`).join(', ')
+    : 'Unassigned';
+}
+
 function formatPhoneNumber(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
   if (digits.length === 0) return '';
@@ -336,7 +342,7 @@ export function PublicBookingPage(): JSX.Element {
   return (
     <section className="public-booking-page" style={brandStyle}>
       <div className="booking-shell">
-        <aside className="booking-poster">
+        <aside className={`booking-poster${step === 'confirm' ? ' booking-poster--confirmed' : ''}`}>
           {branding?.logo_url ? (
             <img
               className="brand-logo public-brand-logo"
@@ -400,35 +406,30 @@ export function PublicBookingPage(): JSX.Element {
               {slotsByDay.map((group) => (
                 <div key={group.dayLabel} className="slot-group">
                   <h4>{group.dayLabel}</h4>
-                  <ul className="block-list">
-                    {group.slots.map((slot) => (
-                      <li key={slot.time_block_id}>
-                        <label className="checkbox-label">
+                  <div className="slot-tiles">
+                    {group.slots.map((slot) => {
+                      const isSelected = bookingMode === 'booking' && selectedSlotId === slot.time_block_id;
+                      return (
+                        <label key={slot.time_block_id} className={`slot-tile${isSelected ? ' selected' : ''}`}>
                           <input
                             type="radio"
                             name="selected-slot"
-                            checked={bookingMode === 'booking' && selectedSlotId === slot.time_block_id}
+                            checked={isSelected}
                             onChange={() => {
                               setSelectedSlotId(slot.time_block_id);
                               setBookingMode('booking');
                             }}
                           />
                           <span>
-                            <strong>{formatSlotLabel(slot, timeZone)}</strong>
-                            <br />
-                            Remaining: {slot.remaining_slots}
-                            <br />
-                            Engineers:{' '}
-                            {slot.engineers.length > 0
-                              ? slot.engineers
-                                  .map((engineer) => `${engineer.first_name} ${engineer.last_name}`)
-                                  .join(', ')
-                              : 'Unassigned'}
+                            <span className="slot-tile-time">{formatSlotLabel(slot, timeZone)}</span>
+                            <span className="slot-tile-meta">
+                              Remaining: {slot.remaining_slots} &middot; {formatEngineerNames(slot.engineers)}
+                            </span>
                           </span>
                         </label>
-                      </li>
-                    ))}
-                  </ul>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
@@ -442,37 +443,34 @@ export function PublicBookingPage(): JSX.Element {
               {fullSlotsByDay.map((group) => (
                 <div key={`waitlist-${group.dayLabel}`} className="slot-group">
                   <h4>{group.dayLabel}</h4>
-                  <ul className="block-list">
-                    {group.slots.map((slot) => (
-                      <li key={slot.time_block_id}>
-                        <label className="checkbox-label">
+                  <div className="slot-tiles">
+                    {group.slots.map((slot) => {
+                      const isSelected = bookingMode === 'waitlist' && selectedSlotId === slot.time_block_id;
+                      return (
+                        <label
+                          key={slot.time_block_id}
+                          className={`slot-tile${isSelected ? ' selected' : ''} waitlist-tile`}
+                        >
                           <input
                             type="radio"
                             name="selected-slot"
-                            checked={bookingMode === 'waitlist' && selectedSlotId === slot.time_block_id}
+                            checked={isSelected}
                             onChange={() => {
                               setSelectedSlotId(slot.time_block_id);
                               setBookingMode('waitlist');
                             }}
                           />
                           <span>
-                            <strong>{formatSlotLabel(slot, timeZone)}</strong>
-                            <br />
-                            Status: Full
-                            <br />
-                            Waitlist count: {slot.waitlist_count}
-                            <br />
-                            Engineers:{' '}
-                            {slot.engineers.length > 0
-                              ? slot.engineers
-                                  .map((engineer) => `${engineer.first_name} ${engineer.last_name}`)
-                                  .join(', ')
-                              : 'Unassigned'}
+                            <span className="slot-tile-time">{formatSlotLabel(slot, timeZone)}</span>
+                            <span className="slot-tile-meta">
+                              Full &middot; {slot.waitlist_count} on waitlist &middot;{' '}
+                              {formatEngineerNames(slot.engineers)}
+                            </span>
                           </span>
                         </label>
-                      </li>
-                    ))}
-                  </ul>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
@@ -480,7 +478,10 @@ export function PublicBookingPage(): JSX.Element {
 
           {error ? <p className="error">{error}</p> : null}
 
-          <div className="button-row">
+          <div className="step-actions">
+            <span className="step-actions-status">
+              Selected: {selectedSlot ? formatSlotLabel(selectedSlot, timeZone) : 'none'}
+            </span>
             <button type="button" className="secondary-button" onClick={() => setStep('password')}>
               <ChevronLeft size={16} /> Back
             </button>
@@ -512,55 +513,59 @@ export function PublicBookingPage(): JSX.Element {
             <p className="hint">This slot is currently full. We will notify you if a spot opens.</p>
           ) : null}
 
-          <label>
-            First Name
-            <input
-              type="text"
-              value={contact.first_name}
-              onChange={(event) =>
-                setContact((prev) => ({ ...prev, first_name: event.target.value }))
-              }
-              required
-            />
-          </label>
+          <div className="field-pair">
+            <label>
+              First Name
+              <input
+                type="text"
+                value={contact.first_name}
+                onChange={(event) =>
+                  setContact((prev) => ({ ...prev, first_name: event.target.value }))
+                }
+                required
+              />
+            </label>
 
-          <label>
-            Last Name
-            <input
-              type="text"
-              value={contact.last_name}
-              onChange={(event) => setContact((prev) => ({ ...prev, last_name: event.target.value }))}
-              required
-            />
-          </label>
+            <label>
+              Last Name
+              <input
+                type="text"
+                value={contact.last_name}
+                onChange={(event) => setContact((prev) => ({ ...prev, last_name: event.target.value }))}
+                required
+              />
+            </label>
+          </div>
 
-          <label>
-            Email
-            <input
-              type="email"
-              value={contact.email}
-              onChange={(event) => setContact((prev) => ({ ...prev, email: event.target.value }))}
-              required
-            />
-          </label>
+          <div className="field-pair">
+            <label>
+              Email
+              <input
+                type="email"
+                value={contact.email}
+                onChange={(event) => setContact((prev) => ({ ...prev, email: event.target.value }))}
+                required
+              />
+            </label>
 
-          <label>
-            Phone
-            <input
-              type="tel"
-              inputMode="numeric"
-              placeholder="(XXX) XXX-XXXX"
-              value={contact.phone}
-              onChange={(event) =>
-                setContact((prev) => ({ ...prev, phone: formatPhoneNumber(event.target.value) }))
-              }
-              required
-            />
-          </label>
+            <label>
+              Phone
+              <input
+                type="tel"
+                inputMode="numeric"
+                placeholder="(XXX) XXX-XXXX"
+                value={contact.phone}
+                onChange={(event) =>
+                  setContact((prev) => ({ ...prev, phone: formatPhoneNumber(event.target.value) }))
+                }
+                required
+              />
+            </label>
+          </div>
 
           {error ? <p className="error">{error}</p> : null}
 
-          <div className="button-row">
+          <div className="step-actions">
             <button type="button" className="secondary-button" onClick={() => setStep('slot')}>
               <ChevronLeft size={16} /> Back
             </button>
@@ -580,15 +585,26 @@ export function PublicBookingPage(): JSX.Element {
             Booking confirmed for {bookingResponse.booking.client_first_name}{' '}
             {bookingResponse.booking.client_last_name}.
           </p>
-          <p className="hint">
-            Need to make a change?{' '}
-            <a className="inline-link" href={bookingResponse.reschedule_url}>
-              Reschedule or cancel this booking
-            </a>
-            .
-          </p>
 
-          <div className="button-row">
+          <div className="booking-facts">
+            <span className="booking-facts-label">Project</span>
+            <span>{projectResponse.project.name}</span>
+
+            {selectedSlot ? (
+              <>
+                <span className="booking-facts-label">When</span>
+                <span>{formatSlotLabel(selectedSlot, timeZone)}</span>
+
+                <span className="booking-facts-label">Engineer</span>
+                <span>{formatEngineerNames(selectedSlot.engineers)}</span>
+              </>
+            ) : null}
+
+            <span className="booking-facts-label">Reference</span>
+            <span className="mono-text">{bookingResponse.booking.booking_token.slice(0, 8)}</span>
+          </div>
+
+          <div className="step-actions">
             <button
               type="button"
               onClick={() => downloadCalendar(bookingResponse.booking.booking_token)}
@@ -598,6 +614,13 @@ export function PublicBookingPage(): JSX.Element {
             <button type="button" className="secondary-button" onClick={resetFlow}>
               Book Another Slot
             </button>
+            <a
+              className="inline-link"
+              style={{ marginLeft: 'auto' }}
+              href={bookingResponse.reschedule_url}
+            >
+              Reschedule or cancel this booking
+            </a>
           </div>
         </div>
       ) : null}

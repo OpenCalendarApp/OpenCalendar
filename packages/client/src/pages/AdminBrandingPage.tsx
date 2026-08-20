@@ -146,10 +146,12 @@ export function AdminBrandingPage(): JSX.Element {
 
       {/* Logo Section */}
       <div className="detail-card" style={{ marginBottom: 'var(--space-4)' }}>
-        <h3>Organization Logo</h3>
-        <p className="hint">
-          Displayed on public booking pages. Accepts PNG, JPG, or SVG (max 500 KB, resized to 400px width).
-        </p>
+        <div className="card-header-row">
+          <h3>Organization Logo</h3>
+          <p className="hint">
+            Displayed on public booking pages. Accepts PNG, JPG, or SVG (max 500 KB, resized to 400px width).
+          </p>
+        </div>
 
         {branding.logo_url ? (
           <div style={{ margin: 'var(--space-3) 0' }}>
@@ -194,11 +196,13 @@ export function AdminBrandingPage(): JSX.Element {
 
       {/* Accent Color Section */}
       <form className="detail-card" onSubmit={(event) => void saveAccentColor(event)}>
-        <h3>Accent Color</h3>
-        <p className="hint">
-          Applied to buttons, links, and progress bars on public booking pages.
-          Leave blank to use the default brand color.
-        </p>
+        <div className="card-header-row">
+          <h3>Accent Color</h3>
+          <p className="hint">
+            Applied to buttons, links, and progress bars on public booking pages.
+            Leave blank to use the default brand color.
+          </p>
+        </div>
 
         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: 'var(--space-2)' }}>
           <div className="accent-swatches">
@@ -248,7 +252,7 @@ export function AdminBrandingPage(): JSX.Element {
           </div>
         </div>
 
-        <div style={{ marginTop: 'var(--space-3)', display: 'flex', gap: 'var(--space-2)' }}>
+        <div className="button-row">
           <button type="submit" disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save Accent Color'}
           </button>

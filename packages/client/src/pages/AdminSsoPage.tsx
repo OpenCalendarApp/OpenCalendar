@@ -30,6 +30,7 @@ const defaultConfig: AdminOidcSsoConfig = {
 export function AdminSsoPage(): JSX.Element {
   const { showToast } = useToast();
   const [config, setConfig] = useState<AdminOidcSsoConfig>(defaultConfig);
+  const [savedConfig, setSavedConfig] = useState<AdminOidcSsoConfig>(defaultConfig);
   const [clientSecret, setClientSecret] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,6 +43,7 @@ export function AdminSsoPage(): JSX.Element {
     try {
       const response = await apiFetch<AdminOidcSsoConfigResponse>('/admin/sso/oidc');
       setConfig(response.config);
+      setSavedConfig(response.config);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load OIDC SSO config');
     } finally {
@@ -82,6 +84,7 @@ export function AdminSsoPage(): JSX.Element {
         body: JSON.stringify(payload)
       });
       setConfig(response.config);
+      setSavedConfig(response.config);
       setClientSecret('');
       showToast('OIDC SSO configuration saved.', 'success');
     } catch (saveError) {
@@ -93,11 +96,21 @@ export function AdminSsoPage(): JSX.Element {
     }
   }
 
+  function discard(): void {
+    setConfig(savedConfig);
+    setClientSecret('');
+  }
+
   return (
     <section>
-      <div className="header-row">
-        <h2>Admin SSO (OIDC)</h2>
-        <button type="button" className="header-button" onClick={() => void loadConfig()} disabled={isLoading || isSaving}>
+      <div className="header-row" style={{ alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <h2>Admin SSO (OIDC)</h2>
+          <span className={config.enabled ? 'tag tag-accent' : 'tag tag-neutral'}>
+            {config.enabled ? 'Enabled' : 'Disabled'}
+          </span>
+        </div>
+        <button type="button" className="header-button secondary-button" onClick={() => void loadConfig()} disabled={isLoading || isSaving}>
           {isLoading ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
@@ -108,7 +121,7 @@ export function AdminSsoPage(): JSX.Element {
         </div>
       ) : null}
 
-      <form className="detail-card" onSubmit={(event) => void saveConfig(event)}>
+      <form onSubmit={(event) => void saveConfig(event)}>
         <label className="checkbox-label">
           <input
             type="checkbox"
@@ -118,143 +131,220 @@ export function AdminSsoPage(): JSX.Element {
           Enable OIDC SSO
         </label>
 
-        <label>
-          Issuer URL (optional)
-          <input
-            type="url"
-            value={config.issuer_url}
-            onChange={(event) => setConfig((prev) => ({ ...prev, issuer_url: event.target.value }))}
-            placeholder="https://idp.example.com"
-          />
-        </label>
+        <div className="ledger">
+          <div className="ledger-section-label">Endpoints</div>
+          <div className="ledger-section-body">
+            <div className="field-rows field-rows--label-200">
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-issuer">Issuer URL (optional)</label>
+                <input
+                  id="sso-issuer"
+                  type="url"
+                  className="h-34"
+                  style={{ maxWidth: '420px' }}
+                  value={config.issuer_url}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, issuer_url: event.target.value }))}
+                  placeholder="https://idp.example.com"
+                />
+              </div>
 
-        <label>
-          Authorization Endpoint
-          <input
-            type="url"
-            value={config.authorization_endpoint}
-            onChange={(event) => setConfig((prev) => ({ ...prev, authorization_endpoint: event.target.value }))}
-            placeholder="https://idp.example.com/oauth2/authorize"
-          />
-        </label>
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-authorization-endpoint">Authorization Endpoint</label>
+                <input
+                  id="sso-authorization-endpoint"
+                  type="url"
+                  className="h-34"
+                  style={{ maxWidth: '420px' }}
+                  value={config.authorization_endpoint}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, authorization_endpoint: event.target.value }))}
+                  placeholder="https://idp.example.com/oauth2/authorize"
+                />
+              </div>
 
-        <label>
-          Token Endpoint
-          <input
-            type="url"
-            value={config.token_endpoint}
-            onChange={(event) => setConfig((prev) => ({ ...prev, token_endpoint: event.target.value }))}
-            placeholder="https://idp.example.com/oauth2/token"
-          />
-        </label>
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-token-endpoint">Token Endpoint</label>
+                <input
+                  id="sso-token-endpoint"
+                  type="url"
+                  className="h-34"
+                  style={{ maxWidth: '420px' }}
+                  value={config.token_endpoint}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, token_endpoint: event.target.value }))}
+                  placeholder="https://idp.example.com/oauth2/token"
+                />
+              </div>
 
-        <label>
-          UserInfo Endpoint
-          <input
-            type="url"
-            value={config.userinfo_endpoint}
-            onChange={(event) => setConfig((prev) => ({ ...prev, userinfo_endpoint: event.target.value }))}
-            placeholder="https://idp.example.com/oauth2/userinfo"
-          />
-        </label>
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-userinfo-endpoint">UserInfo Endpoint</label>
+                <input
+                  id="sso-userinfo-endpoint"
+                  type="url"
+                  className="h-34"
+                  style={{ maxWidth: '420px' }}
+                  value={config.userinfo_endpoint}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, userinfo_endpoint: event.target.value }))}
+                  placeholder="https://idp.example.com/oauth2/userinfo"
+                />
+              </div>
+            </div>
+          </div>
 
-        <label>
-          Client ID
-          <input
-            value={config.client_id}
-            onChange={(event) => setConfig((prev) => ({ ...prev, client_id: event.target.value }))}
-          />
-        </label>
+          <div className="ledger-section-label">Client</div>
+          <div className="ledger-section-body">
+            <div className="field-rows field-rows--label-200">
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-client-id">Client ID</label>
+                <input
+                  id="sso-client-id"
+                  className="h-34"
+                  style={{ maxWidth: '260px' }}
+                  value={config.client_id}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, client_id: event.target.value }))}
+                />
+              </div>
 
-        <label>
-          Client Secret
-          <input
-            type="password"
-            value={clientSecret}
-            onChange={(event) => setClientSecret(event.target.value)}
-            placeholder={config.client_secret_configured ? 'Leave blank to keep existing secret' : 'Enter client secret'}
-          />
-        </label>
-        <p className="hint">
-          {config.client_secret_configured ? 'A client secret is already configured.' : 'No client secret configured yet.'}
-        </p>
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-client-secret">Client Secret</label>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    id="sso-client-secret"
+                    type="password"
+                    className="h-34"
+                    style={{ maxWidth: '260px' }}
+                    value={clientSecret}
+                    onChange={(event) => setClientSecret(event.target.value)}
+                    placeholder={config.client_secret_configured ? 'Leave blank to keep existing secret' : 'Enter client secret'}
+                  />
+                  <span className="hint">
+                    {config.client_secret_configured ? 'A client secret is already configured.' : 'No client secret configured yet.'}
+                  </span>
+                </span>
+              </div>
 
-        <label>
-          Scopes
-          <input
-            value={config.scopes}
-            onChange={(event) => setConfig((prev) => ({ ...prev, scopes: event.target.value }))}
-            placeholder="openid profile email"
-          />
-        </label>
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-scopes">Scopes</label>
+                <input
+                  id="sso-scopes"
+                  className="h-34"
+                  style={{ maxWidth: '260px' }}
+                  value={config.scopes}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, scopes: event.target.value }))}
+                  placeholder="openid profile email"
+                />
+              </div>
 
-        <label>
-          Default Role for New SSO Users
-          <select
-            value={config.default_role}
-            onChange={(event) =>
-              setConfig((prev) => ({ ...prev, default_role: event.target.value as 'pm' | 'engineer' }))
-            }
-          >
-            <option value="pm">PM</option>
-            <option value="engineer">Engineer</option>
-          </select>
-        </label>
+              <div className="field-row">
+                <label className="field-label">Default Role for New SSO Users</label>
+                <div className="seg">
+                  <label className={`seg-opt${config.default_role === 'pm' ? ' checked' : ''}`}>
+                    <input
+                      type="radio"
+                      name="sso-default-role"
+                      checked={config.default_role === 'pm'}
+                      onChange={() => setConfig((prev) => ({ ...prev, default_role: 'pm' }))}
+                    />
+                    <span>PM</span>
+                  </label>
+                  <label className={`seg-opt${config.default_role === 'engineer' ? ' checked' : ''}`}>
+                    <input
+                      type="radio"
+                      name="sso-default-role"
+                      checked={config.default_role === 'engineer'}
+                      onChange={() => setConfig((prev) => ({ ...prev, default_role: 'engineer' }))}
+                    />
+                    <span>Engineer</span>
+                  </label>
+                </div>
+              </div>
 
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={config.auto_provision}
-            onChange={(event) => setConfig((prev) => ({ ...prev, auto_provision: event.target.checked }))}
-          />
-          Auto-provision users on first SSO login
-        </label>
+              <div className="field-row">
+                <label className="field-label">Auto-provision</label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={config.auto_provision}
+                    onChange={(event) => setConfig((prev) => ({ ...prev, auto_provision: event.target.checked }))}
+                  />
+                  On first SSO login
+                </label>
+              </div>
+            </div>
+          </div>
 
-        <label>
-          Email Claim
-          <input
-            value={config.claim_email}
-            onChange={(event) => setConfig((prev) => ({ ...prev, claim_email: event.target.value }))}
-          />
-        </label>
+          <div className="ledger-section-label">Claims</div>
+          <div className="ledger-section-body">
+            <div className="field-rows field-rows--label-200">
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-claim-email">Email Claim</label>
+                <input
+                  id="sso-claim-email"
+                  className="h-34"
+                  style={{ maxWidth: '180px' }}
+                  value={config.claim_email}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, claim_email: event.target.value }))}
+                />
+              </div>
 
-        <label>
-          First Name Claim
-          <input
-            value={config.claim_first_name}
-            onChange={(event) => setConfig((prev) => ({ ...prev, claim_first_name: event.target.value }))}
-          />
-        </label>
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-claim-first-name">First Name Claim</label>
+                <input
+                  id="sso-claim-first-name"
+                  className="h-34"
+                  style={{ maxWidth: '180px' }}
+                  value={config.claim_first_name}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, claim_first_name: event.target.value }))}
+                />
+              </div>
 
-        <label>
-          Last Name Claim
-          <input
-            value={config.claim_last_name}
-            onChange={(event) => setConfig((prev) => ({ ...prev, claim_last_name: event.target.value }))}
-          />
-        </label>
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-claim-last-name">Last Name Claim</label>
+                <input
+                  id="sso-claim-last-name"
+                  className="h-34"
+                  style={{ maxWidth: '180px' }}
+                  value={config.claim_last_name}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, claim_last_name: event.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
 
-        <label>
-          Success Redirect URL (optional)
-          <input
-            type="url"
-            value={config.success_redirect_url}
-            onChange={(event) => setConfig((prev) => ({ ...prev, success_redirect_url: event.target.value }))}
-            placeholder="http://localhost:5173/login"
-          />
-        </label>
+          <div className="ledger-section-label ledger-section-label--last">Redirects</div>
+          <div className="ledger-section-body ledger-section-body--last">
+            <div className="field-rows field-rows--label-200">
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-success-redirect">Success Redirect URL (optional)</label>
+                <input
+                  id="sso-success-redirect"
+                  type="url"
+                  className="h-34"
+                  style={{ maxWidth: '320px' }}
+                  value={config.success_redirect_url}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, success_redirect_url: event.target.value }))}
+                  placeholder="http://localhost:5173/login"
+                />
+              </div>
 
-        <label>
-          Error Redirect URL (optional)
-          <input
-            type="url"
-            value={config.error_redirect_url}
-            onChange={(event) => setConfig((prev) => ({ ...prev, error_redirect_url: event.target.value }))}
-            placeholder="http://localhost:5173/login"
-          />
-        </label>
+              <div className="field-row">
+                <label className="field-label" htmlFor="sso-error-redirect">Error Redirect URL (optional)</label>
+                <input
+                  id="sso-error-redirect"
+                  type="url"
+                  className="h-34"
+                  style={{ maxWidth: '320px' }}
+                  value={config.error_redirect_url}
+                  onChange={(event) => setConfig((prev) => ({ ...prev, error_redirect_url: event.target.value }))}
+                  placeholder="http://localhost:5173/login"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <div className="button-row">
+        <div className="card-footer">
+          <button type="button" className="secondary-button" onClick={discard} disabled={isSaving}>
+            Discard
+          </button>
           <button type="submit" disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save OIDC SSO Config'}
           </button>

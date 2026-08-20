@@ -371,189 +371,242 @@ export function AddTimeBlockModal({
     }
   }
 
+  const uniqueSelectedDatesCount = selectedDatesSorted.length;
+  const totalBlocks = isPm
+    ? recurringEnabled
+      ? slotCount * recurrenceOccurrences
+      : uniqueSelectedDatesCount * slotCount
+    : uniqueSelectedDatesCount;
+
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Add time blocks">
-      <div className="modal-card">
-        <h3>{isPm ? 'Add Time Blocks' : 'Add Personal Time Block'}</h3>
+      <div className="modal-card modal-card--wide">
+        <div className="card-header-row">
+          <div>
+            <h3>{isPm ? 'Add Time Blocks' : 'Add Personal Time Block'}</h3>
+            <p className="hint">
+              {project.name} · times in {timeZone}
+            </p>
+          </div>
+          <span className="hint">
+            {selectedDates.length} day{selectedDates.length === 1 ? '' : 's'} selected
+          </span>
+        </div>
 
         <form onSubmit={(event) => void handleSubmit(event)}>
-          <div className="calendar-panel">
-            <div className="calendar-header-row">
-              <button
-                type="button"
-                className="small-button secondary-button"
-                onClick={() => shiftCalendarMonth(-1)}
-              >
-                Previous
-              </button>
-              <strong>{viewMonthLabel}</strong>
-              <button
-                type="button"
-                className="small-button secondary-button"
-                onClick={() => shiftCalendarMonth(1)}
-              >
-                Next
-              </button>
-            </div>
-
-            <div className="calendar-weekdays">
-              {calendarWeekdayLabels.map((label) => (
-                <span key={label}>{label}</span>
-              ))}
-            </div>
-
-            <div className="calendar-grid">
-              {calendarDayCells.map((cell) => {
-                const isSelected = selectedDates.includes(cell.dateKey);
-                return (
+          <div className="modal-columns">
+            <div>
+              <div className="calendar-panel">
+                <div className="calendar-header-row">
                   <button
-                    key={cell.dateKey}
                     type="button"
-                    className={`calendar-day${isSelected ? ' selected' : ''}${cell.inCurrentMonth ? '' : ' outside'}${cell.isToday ? ' today' : ''}`}
-                    onClick={() => toggleDate(cell.dateKey)}
+                    className="small-button secondary-button"
+                    onClick={() => shiftCalendarMonth(-1)}
                   >
-                    {cell.dayOfMonth}
+                    Previous
                   </button>
-                );
-              })}
+                  <strong>{viewMonthLabel}</strong>
+                  <button
+                    type="button"
+                    className="small-button secondary-button"
+                    onClick={() => shiftCalendarMonth(1)}
+                  >
+                    Next
+                  </button>
+                </div>
+
+                <div className="calendar-weekdays">
+                  {calendarWeekdayLabels.map((label) => (
+                    <span key={label}>{label}</span>
+                  ))}
+                </div>
+
+                <div className="calendar-grid">
+                  {calendarDayCells.map((cell) => {
+                    const isSelected = selectedDates.includes(cell.dateKey);
+                    return (
+                      <button
+                        key={cell.dateKey}
+                        type="button"
+                        className={`calendar-day${isSelected ? ' selected' : ''}${cell.inCurrentMonth ? '' : ' outside'}${cell.isToday ? ' today' : ''}`}
+                        onClick={() => toggleDate(cell.dateKey)}
+                      >
+                        {cell.dayOfMonth}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <p className="hint">
+                  {isPm
+                    ? 'Click days to select or deselect. Same time slot settings apply to all selected days.'
+                    : 'Select a date for your personal time block.'}
+                </p>
+                <p className="hint">Selected: {selectedDatesSorted.map(formatDateLabel).join(', ')}</p>
+              </div>
             </div>
 
-            <p className="hint">
-              {isPm
-                ? 'Click days to select or deselect. Same time slot settings apply to all selected days.'
-                : 'Select a date for your personal time block.'}
-            </p>
-            <p className="hint">Selected: {selectedDatesSorted.map(formatDateLabel).join(', ')}</p>
-          </div>
-
-          <label>
-            Start Time
-            <input
-              value={startTime}
-              onChange={(event) => setStartTime(event.target.value)}
-              type="time"
-              required
-            />
-          </label>
-
-          <TimeZoneSelect label="Timezone" />
-          <p className="hint">Selected timezone applies to all created slots.</p>
-
-          <label>
-            Slot Length
-            <select
-              value={slotLengthMinutes}
-              onChange={(event) => setSlotLengthMinutes(Number(event.target.value))}
-            >
-              {slotLengthOptions.map((lengthMinutes) => (
-                <option key={lengthMinutes} value={lengthMinutes}>
-                  {lengthMinutes} minutes
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {isPm ? (
-            <label>
-              {recurringEnabled ? 'Slots Per Occurrence' : 'Consecutive Slots'}
-              <input
-                value={slotCount}
-                onChange={(event) => setSlotCount(Number(event.target.value))}
-                type="number"
-                min={1}
-                max={24}
-                required
-              />
-            </label>
-          ) : null}
-
-          {isPm ? (
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={recurringEnabled}
-                onChange={(event) => setRecurringEnabled(event.target.checked)}
-              />
-              <span>Create recurring weekly schedule</span>
-            </label>
-          ) : null}
-
-          {isPm && recurringEnabled ? (
-            <>
-              <label>
-                Repeat Every (Weeks)
+            <div className="field-rows">
+              <div className="field-row">
+                <label className="field-label" htmlFor="tb-start">
+                  Start time
+                </label>
                 <input
-                  value={recurrenceIntervalWeeks}
-                  onChange={(event) => setRecurrenceIntervalWeeks(Number(event.target.value))}
+                  id="tb-start"
+                  style={{ width: '120px' }}
+                  value={startTime}
+                  onChange={(event) => setStartTime(event.target.value)}
+                  type="time"
+                  required
+                />
+              </div>
+
+              <div style={{ maxWidth: '220px' }}>
+                <TimeZoneSelect label="Timezone" />
+              </div>
+
+              <div className="field-row">
+                <label className="field-label">Slot length</label>
+                <div className="seg">
+                  {slotLengthOptions.map((lengthMinutes) => (
+                    <label
+                      key={lengthMinutes}
+                      className={`seg-opt${slotLengthMinutes === lengthMinutes ? ' checked' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="slot-length"
+                        checked={slotLengthMinutes === lengthMinutes}
+                        onChange={() => setSlotLengthMinutes(lengthMinutes)}
+                      />
+                      <span>{lengthMinutes}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {isPm ? (
+                <div className="field-row">
+                  <label className="field-label" htmlFor="tb-count">
+                    {recurringEnabled ? 'Slots per occurrence' : 'Consecutive slots'}
+                  </label>
+                  <input
+                    id="tb-count"
+                    style={{ width: '80px', textAlign: 'right' }}
+                    className="tabular-nums"
+                    value={slotCount}
+                    onChange={(event) => setSlotCount(Number(event.target.value))}
+                    type="number"
+                    min={1}
+                    max={24}
+                    required
+                  />
+                </div>
+              ) : null}
+
+              <div className="field-row">
+                <label className="field-label" htmlFor="tb-max">
+                  Max signups
+                </label>
+                <input
+                  id="tb-max"
+                  style={{ width: '80px', textAlign: 'right' }}
+                  className="tabular-nums"
+                  value={maxSignups}
+                  onChange={(event) =>
+                    setMaxSignups(Math.min(maxSignupsLimit, Math.max(1, Number(event.target.value))))
+                  }
                   type="number"
                   min={1}
-                  max={26}
+                  max={maxSignupsLimit}
+                  disabled={!canEditMaxSignups}
                   required
                 />
-              </label>
+              </div>
 
-              <label>
-                Number of Occurrences
-                <input
-                  value={recurrenceOccurrences}
-                  onChange={(event) => setRecurrenceOccurrences(Number(event.target.value))}
-                  type="number"
-                  min={2}
-                  max={52}
-                  required
-                />
-              </label>
-            </>
-          ) : null}
+              {isPm ? (
+                <div className="field-row field-row--top">
+                  <label className="field-label" style={{ paddingTop: '2px' }}>
+                    Recurrence
+                  </label>
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={recurringEnabled}
+                        onChange={(event) => setRecurringEnabled(event.target.checked)}
+                      />
+                      Repeat weekly
+                    </label>
+                    {recurringEnabled ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span className="hint">every</span>
+                        <input
+                          style={{ width: '64px', textAlign: 'right' }}
+                          className="tabular-nums"
+                          value={recurrenceIntervalWeeks}
+                          onChange={(event) => setRecurrenceIntervalWeeks(Number(event.target.value))}
+                          type="number"
+                          min={1}
+                          max={26}
+                          required
+                        />
+                        <span className="hint">week(s), ×</span>
+                        <input
+                          style={{ width: '64px', textAlign: 'right' }}
+                          className="tabular-nums"
+                          value={recurrenceOccurrences}
+                          onChange={(event) => setRecurrenceOccurrences(Number(event.target.value))}
+                          type="number"
+                          min={2}
+                          max={52}
+                          required
+                        />
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
-          <label>
-            Max Signups Per Slot
-            <input
-              value={maxSignups}
-              onChange={(event) =>
-                setMaxSignups(Math.min(maxSignupsLimit, Math.max(1, Number(event.target.value))))
-              }
-              type="number"
-              min={1}
-              max={maxSignupsLimit}
-              disabled={!canEditMaxSignups}
-              required
-            />
-          </label>
-          {!isPm ? <p className="hint">Personal blocks always use 1 signup slot.</p> : null}
-          {isPm && !project.is_group_signup ? (
-            <p className="hint">This project is set to individual signup, so max signups per slot stays at 1.</p>
-          ) : null}
-          {isPm && project.is_group_signup && maxSignupsLimit <= 1 ? (
-            <p className="hint">
-              Project max group size is 1. Increase "Max Group Size" in project settings to allow higher slot capacity.
-            </p>
-          ) : null}
-
-          {isPm ? (
-            <fieldset className="selection-grid">
-              <legend>Assign Engineers</legend>
-              {engineers.length === 0 ? <p className="hint">No engineers available for assignment.</p> : null}
-              {engineers.map((engineer) => (
-                <label key={engineer.id} className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={selectedEngineerIds.includes(engineer.id)}
-                    onChange={() => toggleEngineer(engineer.id)}
-                  />
-                  <span>
-                    {engineer.first_name} {engineer.last_name} ({engineer.email})
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          ) : (
-            <p className="hint">This block will be created as your personal assignment.</p>
-          )}
+              {isPm ? (
+                <div className="field-row field-row--top">
+                  <label className="field-label" style={{ paddingTop: '2px' }}>
+                    Engineers
+                  </label>
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    {engineers.length === 0 ? (
+                      <p className="hint">No engineers available for assignment.</p>
+                    ) : (
+                      engineers.map((engineer) => (
+                        <label key={engineer.id} className="checkbox-label" style={{ flexWrap: 'wrap' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedEngineerIds.includes(engineer.id)}
+                            onChange={() => toggleEngineer(engineer.id)}
+                          />
+                          <span>
+                            {engineer.first_name} {engineer.last_name}{' '}
+                            <span className="hint">{engineer.email}</span>
+                          </span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="hint">This block will be created as your personal assignment.</p>
+              )}
+            </div>
+          </div>
 
           {error ? <p className="error">{error}</p> : null}
 
-          <div className="button-row">
+          <div className="card-footer">
+            <span className="card-footer-status">
+              Creates {totalBlocks} block{totalBlocks === 1 ? '' : 's'} · {startTime} ·{' '}
+              {uniqueSelectedDatesCount} day{uniqueSelectedDatesCount === 1 ? '' : 's'}
+              {isPm && recurringEnabled ? ` × ${recurrenceOccurrences} weeks` : ''}
+            </span>
             <button type="button" className="secondary-button" onClick={onClose} disabled={pending}>
               Cancel
             </button>

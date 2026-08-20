@@ -156,13 +156,12 @@ export function LoginPage(): JSX.Element {
   }
 
   return (
-    <div className="center-card">
+    <div className="center-card center-card--narrow">
+      <style>{'.login-brand-logo { width: min(180px, 60vw); }'}</style>
       <div className="auth-brand">
-        <BrandLogo variant="stacked" className="brand-logo auth-brand-logo" />
-        <p className="hint">OpenCalendar keeps teams, calendars, and client bookings aligned.</p>
+        <BrandLogo variant="stacked" className="brand-logo auth-brand-logo login-brand-logo" />
+        <p className="hint">Project-aware scheduling for teams that run client sessions.</p>
       </div>
-      <p className="hint">Project-aware scheduling that replaces per-seat calendar tools. Manage availability, bookings, and client communication in one place.</p>
-      <h2>Login</h2>
       {!setupCheckPending && requiresSetup ? (
         <div className="detail-card status-card">
           <p className="hint">This environment has not been initialized yet.</p>
@@ -173,38 +172,49 @@ export function LoginPage(): JSX.Element {
           </div>
         </div>
       ) : null}
-      <div className="button-row">
+      <div>
         <button
           type="button"
-          className="secondary-button"
+          className="secondary-button block-button"
           onClick={() => void startSsoLogin()}
           disabled={ssoPending || requiresSetup || setupCheckPending}
         >
           {ssoPending ? 'Starting SSO...' : <><ShieldCheck size={16} /> Sign in with SSO</>}
         </button>
       </div>
+      <div className="auth-divider">
+        <span>or</span>
+      </div>
       <form onSubmit={(event) => void handleSubmit(event)}>
-        <label>
-          Email
-          <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
-        </label>
-        <label>
-          Password
-          <input
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            type="password"
-          />
-        </label>
+        <div className="auth-fields">
+          <label>
+            Email
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+          </label>
+          <label>
+            Password
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type="password"
+            />
+          </label>
+        </div>
         {error ? <p className="error">{error}</p> : null}
-        <button type="submit" disabled={pending || ssoPending || requiresSetup || setupCheckPending}>
+        <button
+          type="submit"
+          className="block-button"
+          disabled={pending || ssoPending || requiresSetup || setupCheckPending}
+        >
           {pending ? 'Signing in...' : <><LogIn size={16} /> Sign in</>}
         </button>
       </form>
-      <p className="hint">
+      <div className="auth-footer-row">
         <Link to="/forgot-password">Forgot password?</Link>
-      </p>
-      <p className="hint">Seed credentials: admin@example.com or pm@example.com / password123</p>
+        <span>
+          Need setup? <Link to="/setup">Initialize</Link>
+        </span>
+      </div>
     </div>
   );
 }

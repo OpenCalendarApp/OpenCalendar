@@ -34,6 +34,7 @@ export function AdminUsersPage(): JSX.Element {
   const [draftIsActive, setDraftIsActive] = useState<Record<number, boolean>>({});
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [pendingRoleByUserId, setPendingRoleByUserId] = useState<UserPendingState>({});
   const [pendingStatusByUserId, setPendingStatusByUserId] = useState<UserPendingState>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -131,6 +132,23 @@ export function AdminUsersPage(): JSX.Element {
     }
   }
 
+  async function saveBoth(userId: number): Promise<void> {
+    const user = users.find((existing) => existing.id === userId);
+    if (!user) {
+      return;
+    }
+
+    const draftRole = draftRoles[userId] ?? user.role;
+    const draftActive = draftIsActive[userId] ?? user.is_active;
+
+    if (draftRole !== user.role) {
+      await saveRole(userId);
+    }
+    if (draftActive !== user.is_active) {
+      await saveStatus(userId);
+    }
+  }
+
   async function createUser(): Promise<void> {
     const email = newUserForm.email.trim();
     const firstName = newUserForm.first_name.trim();
@@ -173,13 +191,36 @@ export function AdminUsersPage(): JSX.Element {
     }
   }
 
-  const hasUsers = useMemo(() => users.length > 0, [users.length]);
+  const adminCount = useMemo(() => users.filter((user) => user.role === 'admin').length, [users]);
+  const pmCount = useMemo(() => users.filter((user) => user.role === 'pm').length, [users]);
+  const engineerCount = useMemo(() => users.filter((user) => user.role === 'engineer').length, [users]);
+
+  const filteredUsers = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) {
+      return users;
+    }
+    return users.filter((user) => {
+      const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+      return fullName.includes(term) || user.email.toLowerCase().includes(term);
+    });
+  }, [users, searchTerm]);
+
+  const hasUsers = useMemo(() => filteredUsers.length > 0, [filteredUsers.length]);
 
   return (
     <section>
-      <div className="header-row">
-        <h2>Admin Users</h2>
+      <div className="header-row" style={{ alignItems: 'flex-end' }}>
+        <div>
+          <h2>Users</h2>
+          <p className="hint">
+            {users.length} users · {adminCount} admin{adminCount === 1 ? '' : 's'} · {pmCount} PMs · {engineerCount} engineers
+          </p>
+        </div>
         <div className="button-row">
+          <button type="button" className="header-button secondary-button" onClick={() => void loadUsers()} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
           <button
             type="button"
             className="header-button"
@@ -189,9 +230,6 @@ export function AdminUsersPage(): JSX.Element {
             }}
           >
             {isCreateFormOpen ? 'Cancel' : 'Create User'}
-          </button>
-          <button type="button" className="header-button" onClick={() => void loadUsers()} disabled={isLoading}>
-            {isLoading ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
       </div>
@@ -276,41 +314,50 @@ export function AdminUsersPage(): JSX.Element {
         </form>
       ) : null}
 
-      <div className="detail-card">
-        <div className="header-row" style={{ border: 'none', margin: 0, padding: 0 }}>
-          <div>
-            <label>Role Filter</label>
-            <div className="seg">
-              <label className={`seg-opt${roleFilter === 'all' ? ' checked' : ''}`}>
-                <input type="radio" name="role-filter" checked={roleFilter === 'all'} onChange={() => setRoleFilter('all')} />
-                <span>All</span>
+      <div className="filter-bar">
+        <div className="filter-field">
+          <span className="filter-label">Role</span>
+          <div className="seg">
+            <label className={`seg-opt${roleFilter === 'all' ? ' checked' : ''}`}>
+              <input type="radio" name="role-filter" checked={roleFilter === 'all'} onChange={() => setRoleFilter('all')} />
+              <span>All</span>
+            </label>
+            {roleOptions.map((role) => (
+              <label key={role} className={`seg-opt${roleFilter === role ? ' checked' : ''}`}>
+                <input type="radio" name="role-filter" checked={roleFilter === role} onChange={() => setRoleFilter(role)} />
+                <span>{role.toUpperCase()}</span>
               </label>
-              {roleOptions.map((role) => (
-                <label key={role} className={`seg-opt${roleFilter === role ? ' checked' : ''}`}>
-                  <input type="radio" name="role-filter" checked={roleFilter === role} onChange={() => setRoleFilter(role)} />
-                  <span>{role.toUpperCase()}</span>
-                </label>
-              ))}
-            </div>
+            ))}
           </div>
+        </div>
 
-          <div>
-            <label>Status Filter</label>
-            <div className="seg">
-              <label className={`seg-opt${activeFilter === 'all' ? ' checked' : ''}`}>
-                <input type="radio" name="status-filter" checked={activeFilter === 'all'} onChange={() => setActiveFilter('all')} />
-                <span>All</span>
-              </label>
-              <label className={`seg-opt${activeFilter === 'active' ? ' checked' : ''}`}>
-                <input type="radio" name="status-filter" checked={activeFilter === 'active'} onChange={() => setActiveFilter('active')} />
-                <span>Active</span>
-              </label>
-              <label className={`seg-opt${activeFilter === 'inactive' ? ' checked' : ''}`}>
-                <input type="radio" name="status-filter" checked={activeFilter === 'inactive'} onChange={() => setActiveFilter('inactive')} />
-                <span>Inactive</span>
-              </label>
-            </div>
+        <div className="filter-field">
+          <span className="filter-label">Status</span>
+          <div className="seg">
+            <label className={`seg-opt${activeFilter === 'all' ? ' checked' : ''}`}>
+              <input type="radio" name="status-filter" checked={activeFilter === 'all'} onChange={() => setActiveFilter('all')} />
+              <span>All</span>
+            </label>
+            <label className={`seg-opt${activeFilter === 'active' ? ' checked' : ''}`}>
+              <input type="radio" name="status-filter" checked={activeFilter === 'active'} onChange={() => setActiveFilter('active')} />
+              <span>Active</span>
+            </label>
+            <label className={`seg-opt${activeFilter === 'inactive' ? ' checked' : ''}`}>
+              <input type="radio" name="status-filter" checked={activeFilter === 'inactive'} onChange={() => setActiveFilter('inactive')} />
+              <span>Inactive</span>
+            </label>
           </div>
+        </div>
+
+        <div className="filter-field filter-field--search">
+          <span className="filter-label">Search</span>
+          <input
+            placeholder="Name or email"
+            className="h-34"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            style={{ width: '220px' }}
+          />
         </div>
       </div>
 
@@ -335,80 +382,80 @@ export function AdminUsersPage(): JSX.Element {
       {hasUsers ? (
         <div className="detail-card">
           <table className="block-table">
+            <colgroup>
+              <col style={{ width: '22%' }} />
+              <col style={{ width: '26%' }} />
+              <col style={{ width: '19%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '8%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
                 <th>Status</th>
-                <th>Created</th>
+                <th className="text-right">Created</th>
                 <th>Save</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.first_name} {user.last_name}</td>
-                  <td>{user.email}</td>
-                  <td>
-                    <div className="seg">
-                      {roleOptions.map((role) => {
-                        const current = draftRoles[user.id] ?? user.role;
-                        return (
-                          <label key={role} className={`seg-opt${current === role ? ' checked' : ''}`}>
-                            <input
-                              type="radio"
-                              name={`role-${user.id}`}
-                              checked={current === role}
-                              onChange={() => setDraftRoles((prev) => ({ ...prev, [user.id]: role }))}
-                            />
-                            <span>{role.toUpperCase()}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={(draftIsActive[user.id] ?? user.is_active) ? 'tag tag-accent' : 'tag tag-neutral'}>
-                      {(draftIsActive[user.id] ?? user.is_active) ? 'Active' : 'Inactive'}
-                    </span>
-                    <button
-                      type="button"
-                      className="secondary-button small-button"
-                      style={{ marginTop: '6px' }}
-                      onClick={() =>
-                        setDraftIsActive((prev) => ({
-                          ...prev,
-                          [user.id]: !(prev[user.id] ?? user.is_active)
-                        }))
-                      }
-                    >
-                      Toggle
-                    </button>
-                  </td>
-                  <td>{new Date(user.created_at).toLocaleString()}</td>
-                  <td>
-                    <div className="button-row">
+              {filteredUsers.map((user) => {
+                const draftRole = draftRoles[user.id] ?? user.role;
+                const draftActive = draftIsActive[user.id] ?? user.is_active;
+                const isDirty = draftRole !== user.role || draftActive !== user.is_active;
+                const pending = Boolean(pendingRoleByUserId[user.id]) || Boolean(pendingStatusByUserId[user.id]);
+
+                return (
+                  <tr key={user.id} className={isDirty ? 'is-dirty' : undefined}>
+                    <td>{user.first_name} {user.last_name}</td>
+                    <td>{user.email}</td>
+                    <td>
+                      <select
+                        className="h-32"
+                        value={draftRole}
+                        onChange={(event) =>
+                          setDraftRoles((prev) => ({ ...prev, [user.id]: event.target.value as UserRole }))
+                        }
+                        style={isDirty ? { borderColor: 'var(--color-text-primary)' } : undefined}
+                      >
+                        {roleOptions.map((role) => (
+                          <option key={role} value={role}>
+                            {role.toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
                       <button
                         type="button"
-                        className="secondary-button small-button"
-                        onClick={() => void saveRole(user.id)}
-                        disabled={Boolean(pendingRoleByUserId[user.id])}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                        onClick={() =>
+                          setDraftIsActive((prev) => ({
+                            ...prev,
+                            [user.id]: !(prev[user.id] ?? user.is_active)
+                          }))
+                        }
                       >
-                        {pendingRoleByUserId[user.id] ? 'Saving...' : 'Save Role'}
+                        <span className={draftActive ? 'tag tag-accent' : 'tag tag-neutral'}>
+                          {draftActive ? 'Active' : 'Inactive'}
+                        </span>
                       </button>
-                      <button
-                        type="button"
-                        className="secondary-button small-button"
-                        onClick={() => void saveStatus(user.id)}
-                        disabled={Boolean(pendingStatusByUserId[user.id])}
-                      >
-                        {pendingStatusByUserId[user.id] ? 'Saving...' : 'Save Status'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="text-right tabular-nums">{new Date(user.created_at).toLocaleString()}</td>
+                    <td>
+                      {isDirty ? (
+                        <button type="button" onClick={() => void saveBoth(user.id)} disabled={pending}>
+                          {pending ? 'Saving...' : 'Save'}
+                        </button>
+                      ) : (
+                        <span className="hint" style={{ fontSize: '0.8125rem' }}>Saved</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

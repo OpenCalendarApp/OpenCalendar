@@ -131,10 +131,11 @@ export function AvailabilitySolverModal({
               </div>
             ) : (
               <div className="solver-list">
-                {data.suggestions.map((suggestion) => (
+                {data.suggestions.map((suggestion, index) => (
                   <div
                     key={suggestion.start_time}
                     className="solver-suggestion"
+                    style={index === 0 ? { background: 'var(--color-surface)' } : undefined}
                   >
                     <div className="solver-suggestion-info">
                       <span className="solver-suggestion-date">{formatSlotDate(suggestion)}</span>
@@ -158,7 +159,7 @@ export function AvailabilitySolverModal({
           </>
         ) : null}
 
-        <div className="solver-actions">
+        <div className="card-footer">
           <button type="button" className="secondary-button" onClick={onClose}>
             Close
           </button>

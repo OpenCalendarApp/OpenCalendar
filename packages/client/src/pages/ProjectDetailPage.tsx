@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CalendarX, ClipboardCopy, Download, Inbox, Pencil, Plus, Save, Trash2, CalendarSearch } from 'lucide-react';
+import { CalendarX, ClipboardCopy, Download, Inbox, Plus, Save, Trash2, CalendarSearch } from 'lucide-react';
 
 import type {
   Booking,
@@ -172,6 +172,14 @@ export function ProjectDetailPage(): JSX.Element {
       }
     }
     return ids.size;
+  }, [project]);
+
+  const activeBookingsAcrossAllBlocks = useMemo(() => {
+    if (!project) return 0;
+    return project.time_blocks.reduce(
+      (sum, block) => sum + block.bookings.filter((booking) => booking.cancelled_at === null).length,
+      0
+    );
   }, [project]);
 
   const loadProject = useCallback(async () => {
@@ -477,20 +485,25 @@ export function ProjectDetailPage(): JSX.Element {
 
   return (
     <section className="project-detail">
-      <div className="header-row">
+      <div className="header-row" style={{ alignItems: 'flex-end' }}>
         <div>
           <h2>{project.name}</h2>
-          <p className="hint">Created by {project.creator_name}</p>
+          <p className="hint">Created by {project.creator_name} · Displayed in {timeZone}</p>
         </div>
+        <span className={project.is_active ? 'tag tag-accent' : 'tag tag-neutral'}>
+          {project.is_active ? 'Active' : 'Inactive'}
+        </span>
       </div>
 
       <div className="project-detail-columns">
       <div className="project-detail-main">
       <div className="detail-card">
-        <div className="header-row">
+        <div className="card-header-row">
           <div>
             <h3>Time Blocks</h3>
-            <p className="hint">Displayed in {timeZone}</p>
+            <p className="hint">
+              {project.time_blocks.length} blocks · {activeBookingsAcrossAllBlocks} booked · times in {timeZone}
+            </p>
           </div>
           <div className="header-actions">
             {uniqueEngineerCount >= 2 && isPm ? (
@@ -523,14 +536,22 @@ export function ProjectDetailPage(): JSX.Element {
             <p className="hint">No time blocks added yet.</p>
           </div>
         ) : (
-          <table className="block-table">
+          <table className="block-table block-table--roomy">
+            <colgroup>
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '24%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '16%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Start</th>
                 <th>End</th>
                 <th>Engineers</th>
-                <th>Remaining</th>
-                <th>Bookings</th>
+                <th className="text-right">Remaining</th>
+                <th className="text-right">Bookings</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -549,32 +570,37 @@ export function ProjectDetailPage(): JSX.Element {
                             .join(', ')
                         : 'Unassigned'}
                     </td>
-                    <td>
+                    <td className="text-right tabular-nums">
                       {block.remaining_slots} / {block.max_signups}
                     </td>
-                    <td>
+                    <td className="text-right tabular-nums">
                       {activeBookings} active ({block.bookings.length} total)
                     </td>
-                    <td>
+                    <td className="text-right">
                       {canDeleteBlock(block) ? (
-                        <div className="button-row">
-                          <button
-                            type="button"
-                            className="secondary-button small-button"
-                            onClick={() => startEditTimeBlock(block)}
-                            disabled={blockDeletePendingId === block.id}
+                        <span style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <a
+                            className="inline-link"
+                            href="#"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              startEditTimeBlock(block);
+                            }}
                           >
-                            <Pencil size={16} /> Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="secondary-button small-button"
-                            onClick={() => handleDeleteTimeBlockRequest(block.id)}
-                            disabled={blockDeletePendingId === block.id}
+                            Edit
+                          </a>
+                          <a
+                            className="inline-link"
+                            href="#"
+                            style={{ color: 'var(--color-danger)' }}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              handleDeleteTimeBlockRequest(block.id);
+                            }}
                           >
-                            {blockDeletePendingId === block.id ? 'Deleting...' : <><Trash2 size={16} /> Delete</>}
-                          </button>
-                        </div>
+                            {blockDeletePendingId === block.id ? 'Deleting…' : 'Delete'}
+                          </a>
+                        </span>
                       ) : (
                         <span className="hint">No actions</span>
                       )}
@@ -588,7 +614,7 @@ export function ProjectDetailPage(): JSX.Element {
       </div>
 
       <div className="detail-card">
-        <div className="header-row">
+        <div className="card-header-row">
           <h3>Signed Up Clients</h3>
           {signupRows.length > 0 ? (
             <button
@@ -607,7 +633,16 @@ export function ProjectDetailPage(): JSX.Element {
             <p className="hint">No clients have signed up yet.</p>
           </div>
         ) : (
-          <table className="block-table">
+          <table className="block-table block-table--roomy">
+            <colgroup>
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '14%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Name</th>
@@ -663,145 +698,181 @@ export function ProjectDetailPage(): JSX.Element {
 
       {isPm ? (
         <form className="detail-card" onSubmit={(event) => void handleSave(event)}>
-          <h3>Project Settings</h3>
+          <div className="card-header-row">
+            <h3>Project Settings</h3>
+          </div>
 
-          <label>
-            Name
-            <input
-              value={form.name}
-              onChange={(event) => setForm((prev) => (prev ? { ...prev, name: event.target.value } : prev))}
-              type="text"
-              maxLength={255}
-              required
-            />
-          </label>
-
-          <label>
-            Description
-            <textarea
-              value={form.description}
-              onChange={(event) =>
-                setForm((prev) => (prev ? { ...prev, description: event.target.value } : prev))
-              }
-              maxLength={5000}
-              rows={4}
-            />
-          </label>
-
-          <label>
-            Booking Email Domain Allowlist (optional)
-            <input
-              value={form.bookingEmailDomainAllowlist}
-              onChange={(event) =>
-                setForm((prev) => (prev ? { ...prev, bookingEmailDomainAllowlist: event.target.value } : prev))
-              }
-              type="text"
-              maxLength={255}
-              placeholder="client.com"
-            />
-          </label>
-
-          <label>
-            Session Length (minutes)
-            <input
-              value={form.sessionLengthMinutes}
-              onChange={(event) =>
-                setForm((prev) =>
-                  prev ? { ...prev, sessionLengthMinutes: Number(event.target.value) } : prev
-                )
-              }
-              type="number"
-              min={1}
-              required
-            />
-          </label>
-
-          <label>Signup Mode</label>
-          <div className="seg" style={{ marginBottom: '0.8rem' }}>
-            <label className={`seg-opt${!form.isGroupSignup ? ' checked' : ''}`}>
+          <div className="field-rows">
+            <div className="field-row">
+              <label className="field-label" htmlFor="settings-name">
+                Name
+              </label>
               <input
-                type="radio"
-                name="signup-mode"
-                checked={!form.isGroupSignup}
-                onChange={() =>
-                  setForm((prev) => (prev ? { ...prev, isGroupSignup: false, maxGroupSize: 1 } : prev))
+                id="settings-name"
+                value={form.name}
+                onChange={(event) => setForm((prev) => (prev ? { ...prev, name: event.target.value } : prev))}
+                type="text"
+                maxLength={255}
+                required
+              />
+            </div>
+
+            <div className="field-row field-row--top">
+              <label className="field-label" htmlFor="settings-desc" style={{ paddingTop: '8px' }}>
+                Description
+              </label>
+              <textarea
+                id="settings-desc"
+                value={form.description}
+                onChange={(event) =>
+                  setForm((prev) => (prev ? { ...prev, description: event.target.value } : prev))
                 }
+                maxLength={5000}
+                rows={3}
               />
-              <span>Individual</span>
-            </label>
-            <label className={`seg-opt${form.isGroupSignup ? ' checked' : ''}`}>
+            </div>
+
+            <div className="field-row">
+              <label className="field-label" htmlFor="settings-domain">
+                Email domain
+              </label>
               <input
-                type="radio"
-                name="signup-mode"
-                checked={form.isGroupSignup}
-                onChange={() => setForm((prev) => (prev ? { ...prev, isGroupSignup: true } : prev))}
+                id="settings-domain"
+                value={form.bookingEmailDomainAllowlist}
+                onChange={(event) =>
+                  setForm((prev) => (prev ? { ...prev, bookingEmailDomainAllowlist: event.target.value } : prev))
+                }
+                type="text"
+                maxLength={255}
+                placeholder="client.com"
               />
-              <span>Group</span>
-            </label>
+            </div>
+
+            <div className="field-row">
+              <label className="field-label" htmlFor="settings-session">
+                Session length
+              </label>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  id="settings-session"
+                  style={{ width: '80px', textAlign: 'right' }}
+                  className="tabular-nums"
+                  value={form.sessionLengthMinutes}
+                  onChange={(event) =>
+                    setForm((prev) =>
+                      prev ? { ...prev, sessionLengthMinutes: Number(event.target.value) } : prev
+                    )
+                  }
+                  type="number"
+                  min={1}
+                  required
+                />
+                <span className="hint" style={{ fontSize: '0.8125rem' }}>
+                  minutes
+                </span>
+              </span>
+            </div>
+
+            <div className="field-row">
+              <label className="field-label">Signup mode</label>
+              <div className="seg">
+                <label className={`seg-opt${!form.isGroupSignup ? ' checked' : ''}`}>
+                  <input
+                    type="radio"
+                    name="signup-mode"
+                    checked={!form.isGroupSignup}
+                    onChange={() =>
+                      setForm((prev) => (prev ? { ...prev, isGroupSignup: false, maxGroupSize: 1 } : prev))
+                    }
+                  />
+                  <span>Individual</span>
+                </label>
+                <label className={`seg-opt${form.isGroupSignup ? ' checked' : ''}`}>
+                  <input
+                    type="radio"
+                    name="signup-mode"
+                    checked={form.isGroupSignup}
+                    onChange={() => setForm((prev) => (prev ? { ...prev, isGroupSignup: true } : prev))}
+                  />
+                  <span>Group</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="field-row">
+              <label className="field-label" htmlFor="settings-maxgroup">
+                Max group size
+              </label>
+              <input
+                id="settings-maxgroup"
+                style={{ width: '80px', textAlign: 'right' }}
+                className="tabular-nums"
+                value={form.maxGroupSize}
+                onChange={(event) =>
+                  setForm((prev) => (prev ? { ...prev, maxGroupSize: Number(event.target.value) } : prev))
+                }
+                type="number"
+                min={1}
+                disabled={!form.isGroupSignup}
+                required
+              />
+            </div>
+
+            <div className="field-row">
+              <label className="field-label">Project state</label>
+              <div className="seg">
+                <label className={`seg-opt${form.isActive ? ' checked' : ''}`}>
+                  <input
+                    type="radio"
+                    name="project-state"
+                    checked={form.isActive}
+                    onChange={() => setForm((prev) => (prev ? { ...prev, isActive: true } : prev))}
+                  />
+                  <span>Active</span>
+                </label>
+                <label className={`seg-opt${!form.isActive ? ' checked' : ''}`}>
+                  <input
+                    type="radio"
+                    name="project-state"
+                    checked={!form.isActive}
+                    onChange={() => setForm((prev) => (prev ? { ...prev, isActive: false } : prev))}
+                  />
+                  <span>Paused</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="field-row">
+              <label className="field-label" htmlFor="settings-pwd">
+                Client password
+              </label>
+              <input
+                id="settings-pwd"
+                value={form.signupPassword}
+                onChange={(event) =>
+                  setForm((prev) => (prev ? { ...prev, signupPassword: event.target.value } : prev))
+                }
+                type="password"
+                minLength={4}
+                placeholder="Leave blank to keep"
+              />
+            </div>
           </div>
-
-          <label>
-            Max Group Size
-            <input
-              value={form.maxGroupSize}
-              onChange={(event) =>
-                setForm((prev) => (prev ? { ...prev, maxGroupSize: Number(event.target.value) } : prev))
-              }
-              type="number"
-              min={1}
-              disabled={!form.isGroupSignup}
-              required
-            />
-          </label>
-
-          <label>Project State</label>
-          <div className="seg" style={{ marginBottom: '0.8rem' }}>
-            <label className={`seg-opt${form.isActive ? ' checked' : ''}`}>
-              <input
-                type="radio"
-                name="project-state"
-                checked={form.isActive}
-                onChange={() => setForm((prev) => (prev ? { ...prev, isActive: true } : prev))}
-              />
-              <span>Active</span>
-            </label>
-            <label className={`seg-opt${!form.isActive ? ' checked' : ''}`}>
-              <input
-                type="radio"
-                name="project-state"
-                checked={!form.isActive}
-                onChange={() => setForm((prev) => (prev ? { ...prev, isActive: false } : prev))}
-              />
-              <span>Paused</span>
-            </label>
-          </div>
-
-          <label>
-            Reset Client Password (optional)
-            <input
-              value={form.signupPassword}
-              onChange={(event) =>
-                setForm((prev) => (prev ? { ...prev, signupPassword: event.target.value } : prev))
-              }
-              type="password"
-              minLength={4}
-              placeholder="Leave blank to keep current password"
-            />
-          </label>
 
           {error ? <p className="error">{error}</p> : null}
 
-          <div className="button-row">
-            <button type="submit" disabled={savePending}>
-              {savePending ? 'Saving...' : <><Save size={16} /> Save Changes</>}
-            </button>
+          <div className="card-footer">
             <button
               type="button"
               className="danger-button"
+              style={{ marginRight: 'auto' }}
               onClick={handleDeleteRequest}
               disabled={deletePending}
             >
               {deletePending ? 'Deleting...' : <><Trash2 size={16} /> Delete Project</>}
+            </button>
+            <button type="submit" disabled={savePending}>
+              {savePending ? 'Saving...' : <><Save size={16} /> Save Changes</>}
             </button>
           </div>
         </form>

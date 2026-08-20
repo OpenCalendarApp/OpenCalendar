@@ -34,6 +34,12 @@ function formatSlotLabel(slot: { start_time: string; end_time: string }, timeZon
   return `${formatDateTimeInTimeZone(slot.start_time, timeZone)} - ${formatTimeInTimeZone(slot.end_time, timeZone)}`;
 }
 
+function formatEngineerNames(engineers: Array<{ first_name: string; last_name: string }>): string {
+  return engineers.length > 0
+    ? engineers.map((engineer) => `${engineer.first_name} ${engineer.last_name}`).join(', ')
+    : 'Unassigned';
+}
+
 export function ReschedulePage(): JSX.Element {
   const { shareToken, bookingToken } = useParams<{ shareToken: string; bookingToken: string }>();
   const navigate = useNavigate();
@@ -104,6 +110,14 @@ export function ReschedulePage(): JSX.Element {
 
     return Array.from(grouped.values());
   }, [lookup, timeZone]);
+
+  const selectedNewSlot = useMemo(() => {
+    if (!lookup || selectedSlotId === null) {
+      return null;
+    }
+
+    return lookup.available_slots.find((slot) => slot.time_block_id === selectedSlotId) ?? null;
+  }, [lookup, selectedSlotId]);
 
   async function submitReschedule(): Promise<void> {
     if (!bookingToken || selectedSlotId === null) {
@@ -200,21 +214,25 @@ export function ReschedulePage(): JSX.Element {
     <section className="public-booking-page" style={brandStyle}>
       <div className="detail-card">
         <div className="public-brand-bar">
-          {branding?.logo_url ? (
-            <img
-              className="brand-logo public-brand-logo"
-              src={buildApiUrl(branding.logo_url.replace(/^\/api/, ''))}
-              alt="Organization logo"
-            />
-          ) : (
-            <BrandLogo className="brand-logo public-brand-logo" />
-          )}
-          <p className="hint public-brand-copy">Review and update your booking below.</p>
+          <div>
+            {branding?.logo_url ? (
+              <img
+                className="brand-logo public-brand-logo"
+                src={buildApiUrl(branding.logo_url.replace(/^\/api/, ''))}
+                alt="Organization logo"
+              />
+            ) : (
+              <BrandLogo className="brand-logo public-brand-logo" />
+            )}
+            <h2 style={{ marginTop: '12px' }}>Reschedule: {lookup.project.name}</h2>
+          </div>
+          <p className="hint public-brand-copy">
+            Review and update your booking below. Your current slot stays held until you confirm a new one.
+          </p>
         </div>
-        <h2>Reschedule: {lookup.project.name}</h2>
       </div>
 
-      <div className="reschedule-columns">
+      <div className="reschedule-columns" style={{ gridTemplateColumns: '320px 1fr' }}>
         <div>
           <div className="detail-card">
             <h4>Current Booking</h4>
@@ -255,7 +273,12 @@ export function ReschedulePage(): JSX.Element {
         </div>
 
       <div className="detail-card">
-        <h3>Select a New Slot</h3>
+        <div className="card-header-row">
+          <h3>Select a New Slot</h3>
+          <p className="hint">
+            {lookup.available_slots.length} alternative{lookup.available_slots.length === 1 ? '' : 's'} available
+          </p>
+        </div>
 
         {lookup.available_slots.length === 0 ? (
           <p className="hint">No alternative slots are currently available.</p>
@@ -264,32 +287,27 @@ export function ReschedulePage(): JSX.Element {
             {slotsByDay.map((group) => (
               <div key={group.dayLabel} className="slot-group">
                 <h4>{group.dayLabel}</h4>
-                <ul className="block-list">
-                  {group.slots.map((slot) => (
-                    <li key={slot.time_block_id}>
-                      <label className="checkbox-label">
+                <div className="slot-tiles">
+                  {group.slots.map((slot) => {
+                    const isSelected = selectedSlotId === slot.time_block_id;
+                    return (
+                      <label key={slot.time_block_id} className={`slot-tile${isSelected ? ' selected' : ''}`}>
                         <input
                           type="radio"
                           name="new-slot"
-                          checked={selectedSlotId === slot.time_block_id}
+                          checked={isSelected}
                           onChange={() => setSelectedSlotId(slot.time_block_id)}
                         />
                         <span>
-                          <strong>{formatSlotLabel(slot, timeZone)}</strong>
-                          <br />
-                          Remaining: {slot.remaining_slots}
-                          <br />
-                          Engineers:{' '}
-                          {slot.engineers.length > 0
-                            ? slot.engineers
-                                .map((engineer) => `${engineer.first_name} ${engineer.last_name}`)
-                                .join(', ')
-                            : 'Unassigned'}
+                          <span className="slot-tile-time">{formatSlotLabel(slot, timeZone)}</span>
+                          <span className="slot-tile-meta">
+                            Remaining: {slot.remaining_slots} &middot; {formatEngineerNames(slot.engineers)}
+                          </span>
                         </span>
                       </label>
-                    </li>
-                  ))}
-                </ul>
+                    );
+                  })}
+                </div>
               </div>
             ))}
           </div>
@@ -297,7 +315,10 @@ export function ReschedulePage(): JSX.Element {
 
         {error ? <p className="error">{error}</p> : null}
 
-        <div className="button-row">
+        <div className="step-actions">
+          <span className="step-actions-status">
+            {selectedNewSlot ? `Moving to ${formatSlotLabel(selectedNewSlot, timeZone)}` : 'Select a new slot to continue'}
+          </span>
           <button
             type="button"
             onClick={() => void submitReschedule()}

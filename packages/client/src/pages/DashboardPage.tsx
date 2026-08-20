@@ -167,8 +167,14 @@ export function DashboardPage(): JSX.Element {
 
   return (
     <section>
-      <div className="header-row">
-        <h2>Dashboard</h2>
+      <div className="header-row" style={{ alignItems: 'flex-end' }}>
+        <div>
+          <h2>Dashboard</h2>
+          <p className="hint" style={{ margin: '4px 0 0' }}>
+            {projects.length} project{projects.length === 1 ? '' : 's'}
+            {dashStats ? ` · ${dashStats.pending_bookings} pending booking${dashStats.pending_bookings === 1 ? '' : 's'}` : ''}
+          </p>
+        </div>
         {canManageProjects ? (
           <div className="header-actions">
             <button
@@ -287,15 +293,27 @@ export function DashboardPage(): JSX.Element {
 
       {projects.length > 0 ? (
         <div className="detail-card">
+          <div className="card-header-row">
+            <h3>Projects</h3>
+            <span className="hint">{projects.length} project{projects.length === 1 ? '' : 's'}</span>
+          </div>
           <table className="block-table">
+            <colgroup>
+              <col style={{ width: '38%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '14%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Project</th>
-                <th>Session</th>
-                <th>Blocks</th>
-                <th>Bookings</th>
+                <th className="text-right">Session</th>
+                <th className="text-right">Blocks</th>
+                <th className="text-right">Bookings</th>
                 <th>Status</th>
-                <th />
+                <th className="text-right">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -308,15 +326,15 @@ export function DashboardPage(): JSX.Element {
                     <br />
                     <span className="hint">{project.description || 'No description yet.'}</span>
                   </td>
-                  <td>{project.session_length_minutes} min</td>
-                  <td>{project.time_block_count}</td>
-                  <td>{project.active_booking_count} active</td>
+                  <td className="text-right tabular-nums">{project.session_length_minutes} min</td>
+                  <td className="text-right tabular-nums">{project.time_block_count}</td>
+                  <td className="text-right tabular-nums">{project.active_booking_count} active</td>
                   <td>
                     <span className={project.is_active ? 'tag tag-accent' : 'tag tag-neutral'}>
                       {project.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td>
+                  <td className="text-right">
                     <Link to={`/projects/${project.id}`} className="inline-link">
                       Open <ArrowRight size={14} />
                     </Link>

@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Session Reporting CSV Export — `GET /api/v1/projects/:id/export` (per-project) and `GET /api/v1/export/sessions` (cross-project, PM/admin only) with date range and status filters, PII redaction for scrubbed bookings, and frontend download buttons on ProjectDetailPage and DashboardPage (#18).
 - Azure deployment automation: `infra/azure/deploy.sh` (bash) and `infra/azure/deploy.ps1` (PowerShell) provisioning scripts with matching `deploy.env.example`/`deploy.env.ps1.example` templates, plus a step-by-step `docs/DEPLOYMENT_RUNBOOK.md`.
 - `.dockerignore` to trim the Docker build context.
+- Admin-initiated user creation — `POST /admin/users` endpoint and a "Create User" form on the Admin Users page, generating a one-time temporary password for the new account.
 
 ### Changed
 - API routing supports both legacy (`/api/*`) and versioned (`/api/v1/*`) routes.
@@ -51,9 +52,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Project naming, package references, local database defaults, and load-testing labels were renamed from Session Scheduler to Calendar Genie across the repo.
 - README messaging was refreshed to better describe the product and highlight core platform features.
 - Client layout redesigned from a left sidebar to a top navigation bar, with an accompanying `global.css` overhaul applied across the Dashboard, Admin, Project Detail, Public Booking, Reschedule, and Onboarding pages.
+- Design alignment pass fixing three global CSS regressions (buttons stretching to 100% width, left-hugging button labels, and a 2-column `.button-row` grid stretching single buttons to half-width) and applying consistent ledger-row, card-header, card-footer, and fixed-column table layouts across Login, Setup, Dashboard, Admin Overview/Users/SSO/Branding, Project Detail, the Add Time Block and Availability Solver modals, and the public booking/reschedule flow.
+- Admin Users page now tracks per-row draft changes and collapses the role/status/toggle controls into a single contextual "Save" button, plus a client-side name/email search filter.
 - Brand SVG assets (horizontal, stacked, icon treatments) cleaned up.
 - Remaining "Calendar Genie" references (load test script title, docs, UI copy) renamed to "OpenCalendar" for consistent branding.
 - `sharp` server dependency bumped to 0.35.3.
+
+### Security
+- `POST /auth/register` now requires an authenticated admin session; it was previously reachable unauthenticated, allowing open self-signup even though no UI ever called it.
 
 ### Fixed
 - Version bump script output no longer emits noisy git tag errors when no tags are present.

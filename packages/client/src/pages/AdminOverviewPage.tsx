@@ -44,9 +44,12 @@ export function AdminOverviewPage(): JSX.Element {
 
   return (
     <section>
-      <div className="header-row">
-        <h2>Admin Overview</h2>
-        <button type="button" className="header-button" onClick={() => void loadOverview()} disabled={isLoading}>
+      <div className="header-row" style={{ alignItems: 'flex-end' }}>
+        <div>
+          <h2>Admin Overview</h2>
+          <p className="hint" style={{ margin: '4px 0 0' }}>Updated {isLoading ? 'just now' : 'a moment ago'}</p>
+        </div>
+        <button type="button" className="header-button secondary-button" onClick={() => void loadOverview()} disabled={isLoading}>
           {isLoading ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
@@ -68,7 +71,7 @@ export function AdminOverviewPage(): JSX.Element {
           <p className="hint" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '11px' }}>
             People
           </p>
-          <ul className="metrics-hero">
+          <ul className="metrics-hero metrics-hero--cols-5">
             {peopleCards.map((card) => (
               <li key={card.key} className="metric-card">
                 <span className="metric-value">{stats[card.key]}</span>
@@ -80,13 +83,14 @@ export function AdminOverviewPage(): JSX.Element {
           <p className="hint" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '11px' }}>
             Scheduling
           </p>
-          <ul className="metrics-hero">
+          <ul className="metrics-hero metrics-hero--cols-5">
             {schedulingCards.map((card) => (
               <li key={card.key} className="metric-card">
                 <span className="metric-value">{stats[card.key]}</span>
                 <span className="metric-label">{card.label}</span>
               </li>
             ))}
+            <li className="metric-card" aria-hidden="true" />
           </ul>
         </>
       ) : null}

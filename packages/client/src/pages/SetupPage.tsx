@@ -120,90 +120,106 @@ export function SetupPage(): JSX.Element {
         <BrandLogo variant="stacked" className="brand-logo auth-brand-logo" />
         <p className="hint">Set up your first OpenCalendar tenant and admin workspace.</p>
       </div>
-      <h2>Initial Setup</h2>
-      <p className="hint">
-        Create the first admin account and tenant profile.
-      </p>
+      <div className="setup-progress">
+        <div className="setup-progress-bar">
+          <span className="setup-progress-segment filled" />
+          <span className="setup-progress-segment" />
+        </div>
+        <span className="setup-progress-label">Step 1 of 2</span>
+      </div>
 
       {isChecking ? <p>Checking setup status...</p> : null}
       {!isChecking && !requiresSetup ? (
-        <p className="hint">
+        <p
+          className="hint"
+          style={{
+            marginTop: 'var(--space-5)',
+            paddingTop: 'var(--space-4)',
+            borderTop: '1px solid var(--color-border-subtle)'
+          }}
+        >
           Setup is already complete. <Link to="/login">Go to login</Link>.
         </p>
       ) : null}
 
       {requiresSetup ? (
         <form onSubmit={(event) => void handleSubmit(event)}>
-          <label>
-            Tenant Name
-            <input
-              value={form.tenant_name}
-              onChange={(event) => setForm((prev) => ({ ...prev, tenant_name: event.target.value }))}
-              required
-            />
-          </label>
+          <div className="auth-fields">
+            <label>
+              Tenant Name
+              <input
+                value={form.tenant_name}
+                onChange={(event) => setForm((prev) => ({ ...prev, tenant_name: event.target.value }))}
+                required
+              />
+            </label>
 
-          <label>
-            First Name
-            <input
-              value={form.first_name}
-              onChange={(event) => setForm((prev) => ({ ...prev, first_name: event.target.value }))}
-              required
-            />
-          </label>
+            <div className="field-pair">
+              <label>
+                First Name
+                <input
+                  value={form.first_name}
+                  onChange={(event) => setForm((prev) => ({ ...prev, first_name: event.target.value }))}
+                  required
+                />
+              </label>
 
-          <label>
-            Last Name
-            <input
-              value={form.last_name}
-              onChange={(event) => setForm((prev) => ({ ...prev, last_name: event.target.value }))}
-              required
-            />
-          </label>
+              <label>
+                Last Name
+                <input
+                  value={form.last_name}
+                  onChange={(event) => setForm((prev) => ({ ...prev, last_name: event.target.value }))}
+                  required
+                />
+              </label>
+            </div>
 
-          <label>
-            Email
-            <input
-              type="email"
-              value={form.email}
-              onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-              required
-            />
-          </label>
+            <label>
+              Email
+              <input
+                type="email"
+                value={form.email}
+                onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                required
+              />
+            </label>
 
-          <label>
-            Phone (optional)
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
-            />
-          </label>
+            <label>
+              Phone (optional)
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+              />
+            </label>
 
-          <label>
-            Password
-            <input
-              type="password"
-              value={form.password}
-              onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
-              minLength={8}
-              required
-            />
-          </label>
+            <div className="field-pair">
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
+                  minLength={8}
+                  required
+                />
+              </label>
 
-          <label>
-            Confirm Password
-            <input
-              type="password"
-              value={form.confirm_password}
-              onChange={(event) => setForm((prev) => ({ ...prev, confirm_password: event.target.value }))}
-              minLength={8}
-              required
-            />
-          </label>
+              <label>
+                Confirm Password
+                <input
+                  type="password"
+                  value={form.confirm_password}
+                  onChange={(event) => setForm((prev) => ({ ...prev, confirm_password: event.target.value }))}
+                  minLength={8}
+                  required
+                />
+              </label>
+            </div>
+          </div>
 
           {error ? <p className="error">{error}</p> : null}
-          <button type="submit" disabled={isSubmitting}>
+          <button type="submit" className="block-button" disabled={isSubmitting}>
             {isSubmitting ? 'Completing setup...' : 'Complete Setup'}
           </button>
         </form>
