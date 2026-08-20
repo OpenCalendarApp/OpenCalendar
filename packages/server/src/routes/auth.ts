@@ -324,7 +324,7 @@ function isExpired(isoTimestamp: string): boolean {
   return new Date(isoTimestamp).getTime() <= Date.now();
 }
 
-router.post('/register', asyncHandler(async (req, res) => {
+router.post('/register', authMiddleware, requireRole(['admin']), asyncHandler(async (req, res) => {
   const parse = registerSchema.safeParse(req.body satisfies RegisterRequest);
   if (!parse.success) {
     res.status(400).json({ error: 'Validation failed', details: parse.error.flatten() });

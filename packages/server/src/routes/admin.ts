@@ -1,10 +1,14 @@
+import { randomBytes } from 'node:crypto';
+
 import { Router } from 'express';
 
 import {
   type AdminAuditEvent,
   type AdminAuditLogResponse,
+  type AdminCreateUserResponse,
   type AdminOidcSsoConfig,
   type AdminOidcSsoConfigResponse,
+  createAdminUserSchema,
   numericIdParamsSchema,
   updateAdminOidcSsoConfigSchema,
   updateUserRoleSchema,
@@ -21,7 +25,16 @@ import {
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
+import { hashUserPassword } from '../utils/auth.js';
 import { recordAuditEventSafe } from '../utils/audit.js';
+
+function generateTemporaryPassword(): string {
+  return randomBytes(18).toString('base64url');
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
+}
 
 const router = Router();
 
@@ -165,6 +178,73 @@ router.get('/overview', asyncHandler(async (req, res) => {
 
   const response: AdminOverviewResponse = { stats };
   res.json(response);
+}));
+
+router.post('/users', asyncHandler(async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Missing authenticated user' });
+    return;
+  }
+
+  const bodyParse = createAdminUserSchema.safeParse(req.body);
+  if (!bodyParse.success) {
+    res.status(400).json({ error: 'Validation failed', details: bodyParse.error.flatten() });
+    return;
+  }
+
+  const { email, first_name, last_name, phone, role } = bodyParse.data;
+  const temporaryPassword = generateTemporaryPassword();
+  const passwordHash = await hashUserPassword(temporaryPassword);
+
+  try {
+    const result = await pool.query<AdminUserSummary>(
+      `
+      INSERT INTO users (tenant_id, email, first_name, last_name, phone, role, password_hash, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+      RETURNING
+        id,
+        tenant_id,
+        (SELECT tenant_uid FROM tenants WHERE id = $1) AS tenant_uid,
+        email,
+        first_name,
+        last_name,
+        phone,
+        role,
+        is_active,
+        created_at,
+        updated_at
+      `,
+      [req.user.tenantId, email.toLowerCase(), first_name, last_name, phone ?? null, role, passwordHash]
+    );
+
+    const user = result.rows[0];
+    if (!user) {
+      res.status(500).json({ error: 'Unable to create user' });
+      return;
+    }
+
+    await recordAuditEventSafe({
+      tenantId: req.user.tenantId,
+      actorUserId: req.user.userId,
+      actorRole: req.user.role,
+      action: 'admin.user.created',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: {
+        role: user.role
+      }
+    });
+
+    const response: AdminCreateUserResponse = { user, temporary_password: temporaryPassword };
+    res.status(201).json(response);
+  } catch (error: unknown) {
+    if (isUniqueViolation(error)) {
+      res.status(409).json({ error: 'Email already exists' });
+      return;
+    }
+
+    res.status(500).json({ error: 'Unable to create user' });
+  }
 }));
 
 router.get('/users', asyncHandler(async (req, res) => {

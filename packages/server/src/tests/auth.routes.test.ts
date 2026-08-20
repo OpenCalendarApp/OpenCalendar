@@ -2,6 +2,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { test } from 'node:test';
 
+void test('registration endpoint requires an authenticated admin session', async () => {
+  const routePath = new URL('../routes/auth.ts', import.meta.url);
+  const source = await fs.readFile(routePath, 'utf8');
+
+  assert.ok(
+    source.includes("router.post('/register', authMiddleware, requireRole(['admin'])"),
+    'Expected /register to require admin authentication so it cannot be used for open self-signup'
+  );
+});
+
 void test('auth routes include refresh token session endpoints', async () => {
   const routePath = new URL('../routes/auth.ts', import.meta.url);
   const source = await fs.readFile(routePath, 'utf8');

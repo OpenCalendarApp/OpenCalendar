@@ -6,6 +6,7 @@ import type {
   exportSessionsQuerySchema,
   bookSlotSchema,
   bookingTokenParamsSchema,
+  createAdminUserSchema,
   createProjectSchema,
   createRecurringTimeBlocksSchema,
   createTimeBlockSchema,
@@ -38,6 +39,7 @@ export type RefreshTokenRequest = z.infer<typeof refreshTokenSchema>;
 export type LogoutRequest = z.infer<typeof logoutSchema>;
 export type UpdateUserRoleRequest = z.infer<typeof updateUserRoleSchema>;
 export type UpdateUserStatusRequest = z.infer<typeof updateUserStatusSchema>;
+export type CreateAdminUserRequest = z.infer<typeof createAdminUserSchema>;
 export type UpdateAdminOidcSsoConfigRequest = z.infer<typeof updateAdminOidcSsoConfigSchema>;
 
 export type CreateProjectRequest = z.infer<typeof createProjectSchema>;

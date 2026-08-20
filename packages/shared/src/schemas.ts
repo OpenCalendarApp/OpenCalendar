@@ -52,6 +52,14 @@ export const updateUserStatusSchema = z.object({
   is_active: z.boolean()
 });
 
+export const createAdminUserSchema = z.object({
+  email: z.string().trim().email(),
+  first_name: nonEmptyText(100),
+  last_name: nonEmptyText(100),
+  phone: z.string().trim().min(3).max(30).optional(),
+  role: userRoleSchema
+});
+
 const optionalUrlOrEmptySchema = z.union([z.string().trim().url(), z.literal('')]);
 
 export const createProjectSchema = z

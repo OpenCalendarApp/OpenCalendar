@@ -182,6 +182,11 @@ export interface AdminUserResponse {
   user: AdminUserSummary;
 }
 
+export interface AdminCreateUserResponse {
+  user: AdminUserSummary;
+  temporary_password: string;
+}
+
 export interface AdminAuditEvent {
   id: number;
   tenant_id: number;

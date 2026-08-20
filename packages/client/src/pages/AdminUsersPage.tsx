@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type {
+  AdminCreateUserResponse,
   AdminUserResponse,
   AdminUserSummary,
   AdminUsersResponse,
+  CreateAdminUserRequest,
   UpdateUserRoleRequest,
   UpdateUserStatusRequest,
   UserRole
@@ -17,6 +19,14 @@ type ActiveFilter = 'all' | 'active' | 'inactive';
 
 const roleOptions: UserRole[] = ['admin', 'pm', 'engineer'];
 
+const emptyNewUserForm = {
+  email: '',
+  first_name: '',
+  last_name: '',
+  phone: '',
+  role: 'engineer' as UserRole
+};
+
 export function AdminUsersPage(): JSX.Element {
   const { showToast } = useToast();
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
@@ -28,6 +38,11 @@ export function AdminUsersPage(): JSX.Element {
   const [pendingStatusByUserId, setPendingStatusByUserId] = useState<UserPendingState>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [newUserForm, setNewUserForm] = useState(emptyNewUserForm);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [createUserError, setCreateUserError] = useState<string | null>(null);
+  const [createdUserCredential, setCreatedUserCredential] = useState<{ email: string; temporaryPassword: string } | null>(null);
 
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
@@ -116,16 +131,150 @@ export function AdminUsersPage(): JSX.Element {
     }
   }
 
+  async function createUser(): Promise<void> {
+    const email = newUserForm.email.trim();
+    const firstName = newUserForm.first_name.trim();
+    const lastName = newUserForm.last_name.trim();
+    const phone = newUserForm.phone.trim();
+
+    if (!email || !firstName || !lastName) {
+      setCreateUserError('Email, first name, and last name are required.');
+      return;
+    }
+
+    setIsCreatingUser(true);
+    setCreateUserError(null);
+
+    try {
+      const payload: CreateAdminUserRequest = {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        phone: phone || undefined,
+        role: newUserForm.role
+      };
+      const response = await apiFetch<AdminCreateUserResponse>('/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      setUsers((prev) => [response.user, ...prev]);
+      setDraftRoles((prev) => ({ ...prev, [response.user.id]: response.user.role }));
+      setDraftIsActive((prev) => ({ ...prev, [response.user.id]: response.user.is_active }));
+      setCreatedUserCredential({ email: response.user.email, temporaryPassword: response.temporary_password });
+      setNewUserForm(emptyNewUserForm);
+      setIsCreateFormOpen(false);
+      showToast('User created.', 'success');
+    } catch (createError) {
+      const message = createError instanceof Error ? createError.message : 'Unable to create user';
+      setCreateUserError(message);
+    } finally {
+      setIsCreatingUser(false);
+    }
+  }
+
   const hasUsers = useMemo(() => users.length > 0, [users.length]);
 
   return (
     <section>
       <div className="header-row">
         <h2>Admin Users</h2>
-        <button type="button" className="header-button" onClick={() => void loadUsers()} disabled={isLoading}>
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </button>
+        <div className="button-row">
+          <button
+            type="button"
+            className="header-button"
+            onClick={() => {
+              setCreateUserError(null);
+              setIsCreateFormOpen((prev) => !prev);
+            }}
+          >
+            {isCreateFormOpen ? 'Cancel' : 'Create User'}
+          </button>
+          <button type="button" className="header-button" onClick={() => void loadUsers()} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
       </div>
+
+      {createdUserCredential ? (
+        <div className="detail-card status-card">
+          <p>
+            User <strong>{createdUserCredential.email}</strong> was created with temporary password:{' '}
+            <strong>{createdUserCredential.temporaryPassword}</strong>
+          </p>
+          <p className="hint">Copy this now — it will not be shown again. Share it with the user through a secure channel.</p>
+          <button type="button" className="secondary-button small-button" onClick={() => setCreatedUserCredential(null)}>
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
+      {isCreateFormOpen ? (
+        <form
+          className="detail-card"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void createUser();
+          }}
+        >
+          {createUserError ? <p className="error">{createUserError}</p> : null}
+
+          <label>
+            Email
+            <input
+              type="email"
+              value={newUserForm.email}
+              onChange={(event) => setNewUserForm((prev) => ({ ...prev, email: event.target.value }))}
+              required
+            />
+          </label>
+
+          <label>
+            First Name
+            <input
+              value={newUserForm.first_name}
+              onChange={(event) => setNewUserForm((prev) => ({ ...prev, first_name: event.target.value }))}
+              required
+            />
+          </label>
+
+          <label>
+            Last Name
+            <input
+              value={newUserForm.last_name}
+              onChange={(event) => setNewUserForm((prev) => ({ ...prev, last_name: event.target.value }))}
+              required
+            />
+          </label>
+
+          <label>
+            Phone (optional)
+            <input
+              value={newUserForm.phone}
+              onChange={(event) => setNewUserForm((prev) => ({ ...prev, phone: event.target.value }))}
+            />
+          </label>
+
+          <label>Role</label>
+          <div className="seg">
+            {roleOptions.map((role) => (
+              <label key={role} className={`seg-opt${newUserForm.role === role ? ' checked' : ''}`}>
+                <input
+                  type="radio"
+                  name="new-user-role"
+                  checked={newUserForm.role === role}
+                  onChange={() => setNewUserForm((prev) => ({ ...prev, role }))}
+                />
+                <span>{role.toUpperCase()}</span>
+              </label>
+            ))}
+          </div>
+
+          <button type="submit" className="secondary-button" disabled={isCreatingUser}>
+            {isCreatingUser ? 'Creating...' : 'Create User'}
+          </button>
+        </form>
+      ) : null}
 
       <div className="detail-card">
         <div className="header-row" style={{ border: 'none', margin: 0, padding: 0 }}>
