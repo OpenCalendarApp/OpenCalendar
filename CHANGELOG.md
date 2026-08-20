@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2026.08.20] - 2026-08-20
+
 ### Added
 - `scripts/release.mjs` replacing `bump-version.mjs`: rolls the CHANGELOG `[Unreleased]` section into a dated version entry and commits, tags, and pushes the release in one step.
 - `on-demand-release.yml` workflow to manually cut a release (scope + bump level, with a dry-run preview) that builds, publishes Docker images, and creates a GitHub Release.

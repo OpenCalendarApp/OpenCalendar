@@ -1,6 +1,6 @@
 {
   "name": "@opencalendar/server",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +14,7 @@
     "db:seed": "npm run build && node dist/db/seed.js"
   },
   "dependencies": {
-    "@opencalendar/shared": "0.4.0",
+    "@opencalendar/shared": "1.0.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
