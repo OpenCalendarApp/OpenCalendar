@@ -1,0 +1,186 @@
+name: Release
+
+# Triggered by a release tag reaching origin — normally pushed by
+# `npm run release:apply` on a laptop, or by on-demand-release.yml. The scope
+# is read back out of the tag by scripts/release.mjs --from-tag, so a
+# client-only or server-only release builds only that component's image.
+#
+# on-demand-release.yml runs the same script in CI and publishes its own
+# images, then pushes its tag here too. The `plan` job below detects that a
+# GitHub Release already exists for the tag and skips, so an on-demand run
+# does not build and publish everything a second time.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+' # v2026.08.20
+      - 'v[0-9]+-[0-9]+-[0-9]+-[0-9]+' # v2026-08-20-1 (same-day rebuild)
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  plan:
+    name: Resolve Release Plan
+    runs-on: ubuntu-latest
+
+    outputs:
+      should_run: ${{ steps.guard.outputs.should_run }}
+      artifacts: ${{ steps.scope.outputs.artifacts }}
+      tag: ${{ steps.scope.outputs.tag }}
+      notes: ${{ steps.scope.outputs.notes }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Resolve scope from the tag
+        id: scope
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          node scripts/release.mjs --from-tag "$TAG" --json | tee plan.json
+          {
+            echo "tag=$TAG"
+            echo "artifacts=$(jq -r '.artifacts | join(",")' plan.json)"
+            echo "notes<<RELEASE_NOTES_EOF"
+            jq -r .notes plan.json
+            echo "RELEASE_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # on-demand-release.yml publishes before it pushes its tag. If a Release
+      # already exists here, that run has done the work — skipping keeps this
+      # workflow from rebuilding it and re-pushing the `latest` images.
+      - name: Skip when the release already exists
+        id: guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.scope.outputs.tag }}"
+          if gh release view "$TAG" --json tagName >/dev/null 2>&1; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "⏭️ Release $TAG already exists — another workflow published it. Skipping."
+            echo "### Skipped — $TAG was already released" >> "$GITHUB_STEP_SUMMARY"
+          elif [[ -z "${{ steps.scope.outputs.artifacts }}" ]]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "⏭️ Tag $TAG carries no client/server changes — nothing to build."
+            echo "### Skipped — $TAG has no Docker artifacts to build" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "▶️ No release for $TAG yet — building ${{ steps.scope.outputs.artifacts }}"
+          fi
+
+  test:
+    name: Lint, Typecheck & Test
+    needs: plan
+    if: needs.plan.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build shared (required by server & client)
+        run: npx tsc -b packages/shared/tsconfig.json --force
+
+      - name: Typecheck server
+        if: contains(needs.plan.outputs.artifacts, 'docker-server')
+        run: npx tsc --noEmit -p packages/server/tsconfig.json
+
+      - name: Typecheck client
+        if: contains(needs.plan.outputs.artifacts, 'docker-client')
+        run: npx tsc --noEmit -p packages/client/tsconfig.json
+
+      - name: Run server tests
+        if: contains(needs.plan.outputs.artifacts, 'docker-server')
+        run: npm run test -w @opencalendar/server
+
+  release:
+    name: Build, Push & Release
+    needs: [plan, test]
+    if: needs.plan.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+
+    env:
+      ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
+      SERVER_IMAGE_NAME: opencalendar-server
+      CLIENT_IMAGE_NAME: opencalendar-client
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push server image
+        if: contains(needs.plan.outputs.artifacts, 'docker-server')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/server/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.SERVER_IMAGE_NAME }}:${{ needs.plan.outputs.tag }}
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.SERVER_IMAGE_NAME }}:latest
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,scope=server,mode=max
+
+      - name: Build and push client image
+        if: contains(needs.plan.outputs.artifacts, 'docker-client')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/client/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.CLIENT_IMAGE_NAME }}:${{ needs.plan.outputs.tag }}
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.CLIENT_IMAGE_NAME }}:latest
+          cache-from: type=gha,scope=client
+          cache-to: type=gha,scope=client,mode=max
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.plan.outputs.tag }}
+          name: Release ${{ needs.plan.outputs.tag }}
+          body: ${{ needs.plan.outputs.notes }}
+          draft: false
+          prerelease: false
+
+      - name: Summary
+        run: |
+          {
+            echo "## Release Summary"
+            echo
+            echo "- **Tag:** ${{ needs.plan.outputs.tag }}"
+            echo "- **Artifacts:** ${{ needs.plan.outputs.artifacts }}"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -128,8 +128,10 @@ npm run docker:down
 
 - `npm run lint` lint all workspaces
 - `npm run build` build all workspaces
-- `npm run bump` auto bump root version from Client/Server changes
-- `npm run bump -- --force patch|minor|major` force a version bump level
+- `npm run release` preview the release plan (no changes written)
+- `npm run release:apply` cut a release: bump, roll the CHANGELOG, commit, tag, and push
+- `npm run release:client` / `npm run release:server` force-release a single component
+- `npm run release -- --bump patch|minor|major` override the inferred bump level
 - `npm run db:migrate` apply database schema
 - `npm run db:seed` insert demo seed records
 - `npm run db:backup` create a compressed PostgreSQL backup from Docker Compose

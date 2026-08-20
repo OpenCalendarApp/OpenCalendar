@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `scripts/release.mjs` replacing `bump-version.mjs`: rolls the CHANGELOG `[Unreleased]` section into a dated version entry and commits, tags, and pushes the release in one step.
+- `on-demand-release.yml` workflow to manually cut a release (scope + bump level, with a dry-run preview) that builds, publishes Docker images, and creates a GitHub Release.
+- `release.yml` workflow triggered by a pushed release tag, with a guard that skips the build if `on-demand-release.yml` already published that tag.
+- `docker-publish.yml` workflow publishing continuous `:edge` / `:main-<sha>` images from `main` (never moving `:latest`), skipped on release commits.
+- Docker builds now use Buildx with multi-platform (`linux/amd64,linux/arm64`) output and GitHub Actions layer caching.
 - Root version bump workflow for date-based versions (`yyyy.mm.dd`, then `yyyy-mm-dd-<build#>` for additional same-day builds).
 - Workspace package bump workflow using semantic versioning for packages under `packages/*`.
 - Hash-based package change detection with persisted state in `.bump-hashes.json`.

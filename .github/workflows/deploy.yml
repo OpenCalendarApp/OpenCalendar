@@ -16,11 +16,12 @@ on:
         type: string
   workflow_run:
     workflows:
-      - Build and Push
+      - Release
     types:
       - completed
-    branches:
-      - main
+    # No `branches` filter: Release triggers off a pushed tag, not a branch,
+    # and workflow_run's branch filter matches against head_branch — which
+    # for a tag-triggered run is the tag name, never "main".
 
 env:
   ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
@@ -57,11 +58,19 @@ jobs:
             IMAGE_TAG="${{ inputs.image_tag }}"
             ENVIRONMENT="${{ inputs.environment }}"
           else
-            # workflow_run: deploy the SHA of the triggering run
-            IMAGE_TAG="${{ github.event.workflow_run.head_sha }}"
+            # workflow_run: Release only pushes `latest` + the release tag
+            # itself for whichever component(s) it actually rebuilt — the
+            # other component's `latest` is left pointing at its own last
+            # release, which is exactly what we still want to run. So the
+            # safe image to deploy for both apps here is always `latest`.
+            IMAGE_TAG="latest"
             ENVIRONMENT="production"
           fi
-          REVISION_SUFFIX="$(echo "${IMAGE_TAG}" | tr '.' '-' | cut -c1-32)"
+          # Revision suffixes must be unique per deploy; head_sha is always
+          # present on a workflow_run event even though we no longer deploy it.
+          REVISION_SOURCE="${IMAGE_TAG}"
+          [[ "${{ github.event_name }}" != "workflow_dispatch" ]] && REVISION_SOURCE="${{ github.event.workflow_run.head_sha }}"
+          REVISION_SUFFIX="$(echo "${REVISION_SOURCE}" | tr '.' '-' | cut -c1-32)"
           echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
           echo "environment=${ENVIRONMENT}" >> "$GITHUB_OUTPUT"
           echo "revision_suffix=${REVISION_SUFFIX}" >> "$GITHUB_OUTPUT"
