@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Login page no longer shows the "Need setup? Initialize" link once initial setup has already been completed.
+- Role dropdown text on the Admin Users page was clipped top and bottom because its fixed 32px height left no room for the shared input padding; `select` elements now use smaller vertical padding.
+
 ## [2026.08.20] - 2026-08-20
 
 ### Added

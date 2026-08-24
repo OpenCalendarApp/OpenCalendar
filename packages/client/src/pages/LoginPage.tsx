@@ -211,9 +211,11 @@ export function LoginPage(): JSX.Element {
       </form>
       <div className="auth-footer-row">
         <Link to="/forgot-password">Forgot password?</Link>
-        <span>
-          Need setup? <Link to="/setup">Initialize</Link>
-        </span>
+        {!setupCheckPending && requiresSetup ? (
+          <span>
+            Need setup? <Link to="/setup">Initialize</Link>
+          </span>
+        ) : null}
       </div>
     </div>
   );
